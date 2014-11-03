@@ -39,8 +39,16 @@ possible output completion _y_ given the input context _x_.
 - Output completion _y_: a sequence of characters to be inserted at the current
   position in the current file.
 
-### Python verson
+## Old Python verson
 
 To run:
 
     server/server.py <directory to your project>
+
+## Running experiments
+
+FIXME: Describe how to do this
+
+### Visualizing experiments
+
+FIXME: Describe how to do this
