@@ -45,6 +45,9 @@ To run:
 
     server/server.py <directory to your project>
 
+FIXME: Talk about how to use Python version to keep track of usage
+data
+
 ## Running experiments
 
 FIXME: Describe how to do this
