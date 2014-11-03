@@ -7,16 +7,16 @@ editor.
 
 1. Pull dependencies and compile:
 
-      ./pull-dependencies   # Downloads all libraries and datasets to lib (don't need to do frequently)
-      make                  # Compiles everything
+       ./pull-dependencies   # Downloads all libraries and datasets to lib (don't need to do frequently)
+       make                  # Compiles everything
 
 2. Add the following line to your `.vimrc` file:
 
-      source <absolute path of this directory>/plugin/smartautocomplete.vim
+       source <absolute path of this directory>/plugin/smartautocomplete.vim
 
 3. Start the server:
 
-      ./run -inPaths <paths>
+       ./run -inPaths <paths>
 
     The server will scan all the files in the given paths, and
     enable autocompletion for files in these paths.
