@@ -5,17 +5,21 @@ editor.
 
 ## Getting started
 
-To setup the system for use, follow the following two steps:
+1. Pull dependencies and compile:
 
-1. Start the server:
-
-        server/server.py <directory to your project>
-
-    The server will scan all the files in the project directory.
+    ./pull-dependencies   # Downloads all libraries and datasets to lib (don't need to do frequently)
+    make                  # Compiles everything
 
 2. Add the following line to your `.vimrc` file:
 
         source <absolute path of this directory>/plugin/smartautocomplete.vim
+
+3. Start the server:
+
+        ./run -inPaths <paths>
+
+    The server will scan all the files in the given paths, and
+    enable autocompletion for files in these paths.
 
 Now when you start vim on any file, and press Ctrl+P in insert mode, vim will
 call the server for the autocomplete suggestions rather than vim's own.  What
@@ -35,13 +39,8 @@ possible output completion _y_ given the input context _x_.
 - Output completion _y_: a sequence of characters to be inserted at the current
   position in the current file.
 
-### Java verson
-
-To compile:
-
-    ./pull-dependencies   # Downloads all libraries and datasets to lib (don't need to do frequently)
-    make                  # Compiles everything
+### Python verson
 
 To run:
 
-    ./run @data=d3
+    server/server.py <directory to your project>
