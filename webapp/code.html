@@ -1,0 +1,23 @@
+<html>
+  <head>
+    <title>{{path}}</title>
+    <link rel='stylesheet' type='text/css' href='/smartAutocomplete.css' />
+    <script src="/scripts/require.js"></script>
+    <script src="/scripts/handlebars.js"></script>
+    <script>
+       require({
+          baseUrl: '/scripts',
+          priority: ['jquery']
+       }, ['main']);
+    </script>
+  </head>
+  <body>
+    <div class="controls">
+      <ul id="zexecList">
+      </ul>
+      <div id="ztokenInfo">
+      </div>
+    </div>
+    <pre style='margin: 0; line-height: 125%'>{{code}}</pre>
+  </body>
+</html>

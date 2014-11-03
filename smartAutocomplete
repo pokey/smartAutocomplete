@@ -1,0 +1,17 @@
+#!/bin/bash
+
+mkdir -p ~/.smartAutocomplete/state
+
+ARGS="$*"
+FIRST=`echo $ARGS | cut -d" " -f1`
+if [ "$FIRST" = "-f" ]
+then
+  FILES=`echo $ARGS | cut -d" " -f2-`
+  FORWARD=1
+else
+  FILES=$ARGS
+  FORWARD=0
+fi
+
+./run @state=${HOME}/.smartAutocomplete/state @mode=completionServer \
+      @fromPluginScript=1 @customDataset="$FILES" @forward=$FORWARD

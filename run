@@ -1,0 +1,206 @@
+#!/usr/bin/ruby
+
+require './fig/lib/execrunner'
+
+ngramOrder = 4;
+
+if ARGV.size == 0
+   puts "Use -inDirs to specify a list of directories in which to perform " +
+        "completions"
+   exit 1
+end
+
+run!(
+  letDefault(:q, 0), sel(:q, l(), l('fig/bin/q', '-shareWorkingPath', o('mem', '5g'), o('memGrace', 10), '-add', '---')),
+  letDefault(:state, 'state'),
+  'fig/bin/qcreate', o('statePath', :state),
+  'java', '-ea', '-cp', 'classes:lib/*',
+  letDefault(:prof, 0), sel(:prof, l(),
+                            '-Xrunhprof:cpu=samples,depth=100,file=_OUTPATH_/java.hprof.txt',
+                            '-Xrunhprof:heap=all,depth=100,file=_OUTPATH_/java.hprof.txt'),
+  sel(1, l(), '-Xmx1024m'),
+  'smartAutocomplete.Main',
+  o('execDir', '_OUTPATH_'), o('overwriteExecDir'),
+  o('addToView', 'fromTriple'),
+
+  letDefault(:mode, 'server'),
+  sel(:mode, {
+    # Plugin server
+    'server' => l(o('tuneCountSplit', '0.9'), o('tuningTotal', 2000),
+                  o('completionServer'), o('tokenizeCode', true),
+                  o('alwaysUseFileName', false),
+                  o('languages', 'py', 'java', 'sh', 'rb', 'js', 'html', 'css', 'vim', 'cpp')), # Run plugin
+
+    # For running benchmarks
+    'tune' => l(o('count', '0,1'), o('tune', '-20,-10'), o('eval', '-10,1')), # Tune for a bit before evaluating, then stop tuning
+    'noTune' => l(o('count', '0,1'), o('eval', '-10,1')), # No discriminative fine-tuning
+    'count' => l(o('count', '0,1')), # Just do counting
+    'tuneFixedEval' => l(o('count', '0,1'), o('tune', '0.9,1'), o('tuningTotal', 5000)), # Eval on file specified with dataset
+    'noTuneFixedEval' => l(o('count', '0,1')), # Eval on file specified with dataset
+
+    # Other modes
+    'sample' => l(o('sample'), o('ngramOrder', 2), o('initLLParams'), o('featureDomains', 'Test2'), o('sampleCount', 10000)),
+    'batch' => l(o('count', '0,0.8')), # Ordinary language modeling setup
+    'noTuneWeb' => l(o('count', '0,-20'), o('web', '-2,1')), # No discriminative fine-tuning
+    'noTuneNanc' => l(o('count', '0,50000'), o('eval', '49850,50000'), o('maxDocuments', 50000)), # Discriminative fine-tuning for nanc
+    'online' => l(o('count', '0,1'), o('eval', '-10,1'), o('tune', '-10,1')), # Discriminative fine-tuning
+    'onlineNanc' => l(o('count', '0,50000'), o('eval', '49850,50000'), o('tune', '49850,50000'), o('maxDocuments', 50000)), # Discriminative fine-tuning for nanc
+    'tuneAll' => l(o('count', '0,1'), o('eval', '-10,1'), o('tune', '-20,1')), # Tune for a bit before evaluating, then continue tuning
+    'tuneNanc' => l(o('count', '0,50000'), o('eval', '49850,50000'), o('tune', '49700,50000'), o('maxDocuments', 50000)), # Discriminative fine-tuning for nanc
+    'moreTune' => l(o('count', '0,1'), o('eval', '-10,1'), o('tune', '-40,1')), # Discriminative fine-tuning
+    'wsj' => l(o('maxCandidates', 99999999)), # Wsj has its own sections
+    'wsjTune' => l(o('maxCandidates', 99999999), o('tune', '40000,40300')), # Wsj has its own sections
+    'wsjMoreTune' => l(o('maxCandidates', 99999999), o('tune', '39700,40300')), # Wsj has its own sections
+    'tuneBig' => l(o('count', '0,1'), o('eval', '-100,1'), o('tune', '-110,-100')), # Discriminative fine-tuning
+    'completionServerFast' => l(o('count', '0,1'), o('tune', '-2,1'), o('completionServer')), # Run plugin
+    'completionEval' => l(o('count', '0,1'), o('tune', '-100,1'), o('eval', '-100,1'), o('tuningPeriod', 10), o('tuningMax', 2000), o('completionServer')), # Run plugin
+  }),
+
+  # Features
+  letDefault(:feat, 2),
+  sel(:feat,
+    # Baseline with recency
+    o('featureDomains', 'NgramKN', 'SimpleRecency'),
+
+    # Kneser-Ney
+    l(o('featureDomains', 'NgramKN'), o('params.defaultWeight', 1)),
+
+    # Current favorite
+    o('featureDomains', 'NgramKN', 'FileNameKN', 'PatternKN', 'Recency'),
+    # o('featureDomains', 'BerkeleyNgram'),
+
+    # Experiments
+    o('featureDomains', 'NgramKN', 'PatternKN'),
+  nil),
+
+  # Fixed datasets
+  # For plugin usage, can just speficy -inPaths and a list of directories on
+  # which to train
+  letDefault(:data, ''),
+  sel(:data, {
+    '' => l(),
+    'd3' => l(o('inPaths', 'lib/datasets/core-d3'), o('tokenizeCode', true),
+              o('FixedRare.file', '/u/nlp/data/smart-autocomplete/state/execs/243.exec/proj.counts')),
+    'node' => l(o('inPaths', 'lib/datasets/core-node'), o('tokenizeCode', true),
+                o('FixedRare.file', '/u/nlp/data/smart-autocomplete/state/execs/236.exec/proj.counts')),
+    'django' => l(o('inPaths', 'lib/datasets/core-django'), o('tokenizeCode', true),
+                  o('FixedRare.file', '/u/nlp/data/smart-autocomplete/state/execs/241.exec/proj.counts')),
+    'boto' => l(o('inPaths', 'lib/datasets/core-boto'), o('tokenizeCode', true),
+                o('FixedRare.file', '/u/nlp/data/smart-autocomplete/state/execs/235.exec/proj.counts')),
+    'log4j' => l(o('inPaths', 'lib/datasets/core-log4j'), o('tokenizeCode', true),
+                 o('FixedRare.file', '/u/nlp/data/smart-autocomplete/state/execs/246.exec/proj.counts')),
+    'tomcat' => l(o('inPaths', 'lib/datasets/core-tomcat'), o('tokenizeCode', true),
+                  o('FixedRare.file', '/u/nlp/data/smart-autocomplete/state/execs/245.exec/proj.counts')),
+    'triple' => l(o('inPaths', 'lib/datasets/core-smartAutocomplete'),
+                  o('tokenizeCode', true), o('testCountPaths',
+                                             'src/test/Triple.java')),
+    'wc' => l(o('inPaths', 'lib/datasets/core-smartAutocomplete'),
+              o('tokenizeCode', true), o('testCountPaths',
+                                         'src/test/WordCount.java')),
+    'completionTest' => l(o('inPaths', 'lib/datasets/core-smartAutocomplete',
+                            'scratch'), o('tokenizeCode', true)),
+    'smartAutocomplete' => l(o('inPaths', 'plugin', 'server', 'src', 'webapp'), o('tokenizeCode', true),
+                             o('languages', 'py', 'java', 'sh', 'rb', 'js', 'html', 'css')),
+
+    # 'art' => l(o('gen.numDocuments', 1000), o('gen.numTokens', 2), o('gen.docLength', 500), o('gen.bigram'), o('gen.alpha', 2)),  # Artificial data
+    # 'manual' => l(o('inPaths', 'a.txt'), o('splitDocumentByLine', true)),  # Manual
+    # 'nanc' => l(o('inPaths', 'lib/datasets/nanc-1m.txt'), o('splitDocumentByLine', true), o('maxDocuments', 51000)),
+    # 'wsj' => l(o('trainPaths', 'lib/datasets/wsj/partitioned/train.txt'),
+    #            o('testPaths', 'lib/datasets/wsj/partitioned/dev.txt'),
+    #            o('splitDocumentByLine', true),
+    #            o('vocabFile',  'lib/datasets/wsj/vocab.txt'),
+    #            o('toLower'), o('data.permute', false)),
+    # 'test' => l(o('trainPaths', 'lib/datasets/test/train.txt'),
+    #            o('testPaths', 'lib/datasets/test/test.txt'),
+    #            o('splitDocumentByLine', true),
+    #            o('vocabFile',  'lib/datasets/test/vocab.txt'),
+    #            o('data.permute', false)),
+    # 'small_wsj' => l(o('trainPaths', 'lib/datasets/test/wsj_train.txt'),
+    #            o('testPaths', 'lib/datasets/test/wsj_test.txt'),
+    #            o('splitDocumentByLine', true),
+    #            o('vocabFile',  'lib/datasets/wsj/vocab.txt'),
+    #            o('toLower'), o('data.permute', false)),
+  }),
+
+  # Forward to another plugin instance for logging.  Used so that old python
+  # plugin can track completions
+  letDefault(:forward, 0),
+  selo(:forward, 'forwardUri', '', "http://localhost:8082"),
+
+  # Port to listen for completion requests
+  letDefault(:port, 0),
+  selo(:port, 'port', 8083, 8084),
+
+  selo(1, 'data.permute', false, true),
+  selo(0, 'dataRandom', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
+
+  # List of additional datasets for counting
+  sel(1, o('globCountPaths', 'lib/datasets/core-storm',
+    'lib/datasets/core-elasticsearch', 'lib/datasets/core-ActionBarSherlock',
+    'lib/datasets/core-SlidingMenu',
+    'lib/datasets/core-Android-Universal-Image-Loader',
+    'lib/datasets/core-android', 'lib/datasets/core-libgdx',
+    'lib/datasets/core-Android-ViewPagerIndicator',
+    'lib/datasets/core-android-async-http',
+    'lib/datasets/core-spring-framework', 'lib/datasets/core-django',
+    'lib/datasets/core-requests', 'lib/datasets/core-flask',
+    'lib/datasets/core-httpie', 'lib/datasets/core-tornado',
+    'lib/datasets/core-ansible', 'lib/datasets/core-reddit',
+    'lib/datasets/core-Probabilistic-Programming-and-Bayesian-Methods-for-Hackers',
+    'lib/datasets/core-python-guide',
+    'lib/datasets/core-jquery', 'lib/datasets/core-node',
+    'lib/datasets/core-d3', 'lib/datasets/core-angular.js',
+    'lib/datasets/core-impress.js', 'lib/datasets/core-backbone',
+    'lib/datasets/core-moment', 'lib/datasets/core-jQuery-File-Upload',
+    'lib/datasets/core-brackets', 'lib/datasets/core-reveal.js'), l()),
+
+  letDefault(:verbose, 0),
+  sel(:verbose,
+      o('verbose', 0),
+      l(o('verbose', 2), a('misc', 'verbose'))),
+
+  # Output counts to a file
+  selo(0, 'writeCounts', false, true),
+
+  # o('discounts', 0.1),
+  o('ngramOrder', ngramOrder),
+  selo(0, 'maxCandidates', 1000, 10, 50, 100, 200, 500),
+
+  # selo(nil, 'FixedRare.file',
+  #      '/u/nlp/data/smart-autocomplete/state/execs/243.exec/proj.counts',
+  #      '/u/nlp/data/smart-autocomplete/state/execs/243.exec/proj.diversityCounts',
+  #      '/u/nlp/data/smart-autocomplete/state/execs/243.exec/proj.diversityTotals',
+  #      '/u/nlp/data/smart-autocomplete/state/execs/243.exec/proj.fileDiversityCounts'),
+  # selo(nil, 'FixedRare.numTokens', 50, 100, 500),
+  # selo(nil, 'PatternKNCounts.numTokens', 50, 100, 200, 500),
+  o('Recency.numTokens', 50),
+
+  # Optimization alg
+  selo(0, 'randomWeightRange', 0, 0.01, 0.1, 1),
+  selo(2, 'initStepSize', 0.01, 0.1, 1),
+  selo(0, 'batchSize', 1, 10, 100, 1000),
+  selo(0, 'adaptiveStepSize', true, false),
+  selo(0, 'adaGradPower', 0.5, 0.25, 0.1, 0.01),
+  selo(0, 'weightRandom', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+       16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33,
+       34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,
+       52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
+       70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87,
+       88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100),
+
+  selo(0, 'clusters', 1, 2, 5, ngramOrder*4-2),
+
+  # Param initialization
+  # o('params.defaultWeight', 1),
+  # o('knEmKnParams'),
+  # selo(0, 'shutOff', -10, -30),
+  # o('paramsInFile', '/u/nlp/data/smart-autocomplete/state/execs/522.exec/params'),
+  # o('paramsInFile', '/u/nlp/data/smart-autocomplete/state/execs/565.exec/params'),
+  # o('paramsInFile', '/u/nlp/data/smart-autocomplete/state/execs/632.exec/params'),
+  # o('initLLParams'),
+
+  # For simple sampling
+  # o('seedParams'),
+  # o('sampleTune'),
+
+nil)

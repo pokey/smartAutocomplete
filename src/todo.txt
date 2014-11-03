@@ -1,0 +1,108 @@
+x- Stop using max_n
+x- Check if gradient of a big batch is 0 for params on good run
+x- Replace context words with oov but ignore oov prediction words, for both
+  counting and prediction
+x- Do we want to replace context words with oov?
+x- Use vocab.txt
+x- Use discounts from srilm
+x- Backoff to uniform dist
+x- Why is it training on so many tokens?
+
+x- Finish rewriting MultiTokenPredictionContext so that equality testing works
+x- Use PredictionContext for counting
+  x- SplitDocs just have context starting at split
+x- Check if next token in chain is token after insertion; stop if so
+x- LangSpecificKN
+x- Add interface for mod tokens and change CandidateNgram and CountingNgram to
+  use it
+x- Use DataSummary to track number of differen files token appeared in
+x- Make token info display draggable
+x- LM which replaces uncommon words by RARE token
+
+x- Determine whether should do completion in this file
+x- Test eligible code
+x- Only train on files of languages passed in
+x- Make sure we train on at least certain number of tokens in each language
+x- Make getTuneTokensPerDoc language specific
+x- Change help message about languages
+x- Better plugin logging
+x- Why is top-level prediction only using so few candidates?
+x- Why is exclusiveProb so low?
+x- Display next candidates (ie after where we stopped)
+x- Remove count-of-counts error message?
+- Memory
+- Finish BerkeleyLM
+- Get candidates from BerkeleyLM
+- Get vocabulary
+- FileNameKN? (prob just deactivate for now)
+- Try on amagama for a couple days
+
+- Investigate count-of-count warning
+- Investigate NaN's in 369.exec
+- See whether d3 variability is due to recency or patternkn
+x- Debug uncounting
+x- Run multiple FixedRare experiment
+x- Try PatternKN
+
+- Handle extensions not in the list
+- Walk back above bracket
+  - Combine with rarity and skipping sibling
+- Why is file name after class not beating its negation?
+- Better rarity, using kn totals
+- Counting performance (ie slow buffer switching)
+
+- Keep running gradient in file
+
+- Mess with threshold for rare based on size of corpus?
+- Token-specific recency should use higher file count threshold
+- Rare KN where we replace rare with indicator of recency
+- Have wrapper around features that makes them lang specific
+  - Need to deal with static members in features
+- Log info when make prediction
+- Feature with recent diff n-grams?
+- Eliminate parens
+- Recency includes forward in file
+- Training on file by repeatedly going until you've covered through end of
+actual string (based on length?)
+- LM based on recent files
+
+- Figure out exclusions
+  - Binaries
+  - Look in python to see how out of dir handled
+  - See how .swp and stuff were handled
+  - Maybe based on file size and type?
+
+- Fix failing wsj test
+  - Think it's caused by counting during testing
+- Add candidate display and show kn info (global and local)
+- Check out Percy todos
+- How to run on server?
+- Add link / keyboard shortcut for next / prev file
+- Add display for reciprocal rank
+- Add comparison interface
+- Add info about exec to list display
+- Add info about file to file (avg ent)
+x- Why are we not adding words to vocab?
+
+x- Handle /* comments
+
+x- Add tokens from current file before adding unigrams
+x- Fix mrr to use 0's
+x- Throw exception if out of range for sublist?
+
+x- Preprocess wsj to replace oov words with <oov>
+x- Debug <oov> issue?
+x- Only prepend one <s> token
+
+- Reproduce d3 online result
+- Try other step sizes / batch sizes / epsilon sizes with random seeds
+- Why are there 3 features with exact same gradient in 592.exec/grad?
+- Seems that better to continue tuning online
+- Why are gradients smaller for KN than for tuned?
+- Is gradient size proportional to feature size?
+- Do we need to normalize features?
+- Check if gradient is 0 for recency
+- Don't do counting throught InferState
+- Don't count prepended [BEGIN] tokens in token count
+- Remove score()
+x- pull request for fig

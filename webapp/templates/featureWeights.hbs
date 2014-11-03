@@ -1,0 +1,12 @@
+<table class="featureWeights">
+  {{#each this}}
+    <tr onclick="showFeatureInfo('{{feature}}')" >
+      <td class="featureName">{{feature}}</td>
+      <td class="featureWeight">{{num value}}</td>
+      <td>=</td>
+      <td class="featureValue">{{num featureVal}}</td>
+      <td>*</td>
+      <td>{{num weight}}</td>
+    </tr>
+  {{/each}}
+</table>

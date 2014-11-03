@@ -1,0 +1,111 @@
+!escape false
+!preamble \newcommand\sA{\mathcal{A}}
+!preamble \newcommand\sB{\mathcal{B}}
+!preamble \newcommand\sX{\mathcal{X}}
+!preamble \newcommand\sY{\mathcal{Y}}
+!preamble \newcommand\R{\mathbb{R}}
+!preamble \newcommand\p[1]{\ensuremath{\left( #1 \right)}} % Parenthesis ()
+!preamble \newcommand\eqdef{\ensuremath{\stackrel{\rm def}{=}}} % Equal by definition
+!preamble \newcommand{\bone}{\mathbf{1}} % for vector one
+!preamble \newcommand\eqn[1]{\begin{align} #1 \end{align}} % Equation (array)
+!preamble \newcommand\AF[2]{\mathcal{AF}(#1, #2)} % Ascending factorial
+!preamble \newcommand\cross{\times}
+Model combination for smart autocomplete
+!format PI
+Notation
+	Let $[n] \eqdef \{1, \dots, n\}$.
+	For a sequence $(x^1, \dots, x^n)$ and subset of indices $S \subseteq [n]$,
+	 let $x^{S} = (x^i)_{i \in S}$ be the subset of elements corresponding to $S$.
+	Let $\AF{a}{n} = a (a+1) \cdots (a+n-1)$ be the ascending factorial function.
+Problem setup
+	Let $x \in \sX$ denote an input (e.g., the current buffer and cursor position).
+	Let $y \in \sY$ denote an output (e.g., the next token the user will type).
+	Let $D^i \eqdef (x^i, y^i)$.
+	Our goal is to predict the last output $y^n$ from the last input $x^n$
+	 and previous training examples $D^{[n-1]}$.
+	Desidarata: since smart autocomplete is working in an interactive online setting,
+	 we'd prefer an efficient closed-form solution for this prediction.
+Simple multinomial model
+	We first start by defining a simple model, which
+	 essentially partitions the input space $\sX$ into abstract inputs and
+	 estimates a simple multinomial distribution over each partition.
+	We define two abstraction functions on $\sX\cross\sY$:
+		An input abstraction function $\alpha$ that maps
+		 an input $x \in \sX$ into an abstract input $\alpha(x)$.
+			For example, $\alpha(x)$ could denote the token just before the cursor position.
+			Let $\sA \eqdef \{ \alpha(x) : x \in \sX \}$ be the set of all abstract inputs.
+		An output abstraction function $\beta$ that maps an input-output pair $(x,y)$ onto an abstract output
+		 $\beta(x,y)$.
+			For example, $\beta(x,y)$ could be a boolean indicating whether the token $y$ has occurred in the current buffer of $x$.
+			Let $\sB = \{ \beta(x, y) : x \in \sX, y \in \sY \}$ be the set of all abstract outputs.
+	Our probabilistic model is as follows:
+		For each abstract input $a \in \sA$:
+			Choose a probability distribution over abstract outputs $\sB$:
+			 $\theta_a \sim \text{Dirichlet}(\gamma)$,
+			 where $\gamma \in \R^{\sB}$ are the hyperparameters.\footnote{Future: replace this with a better prior like Kneser-Ney.}
+		For each example $i \in [n]$:
+			Compute the abstract input $a^i = \alpha(x^i)$ (deterministic)
+			Choose the abstract output $b^i \sim \text{Multinomial}(\theta_{a^i})$
+			Choose the (concrete) output $y^i \sim \text{Uniform}(\{ y \in \sY : \beta(x^i, y) = b^i \})$.
+	Define the following statistics of the examples $D^{[n]}$:
+		$S^X(a) \eqdef \{ i \in X : \alpha(x^i) = a \}$ be the set of examples with abstract input $a$.
+		$S^X(a, b) \eqdef \{ i \in X : \alpha(x^i) = a, \beta(x^i, y^i) = b \}$ be the set of examples
+		 with abstract input $a$ and abstract output $b$.
+	Exploiting standard Dirichlet-multinomial conjugacy, we get:
+	 \eqn{p_m(y^{[n]} \mid x^{[n]}) =
+	 \prod_{a \in \sA} \frac{\prod_{b \in \sB} \AF{\gamma_b}{|S^{[n]}(a, b)|}}{\AF{\gamma_\cdot}{|S^{[n]}(a)|},}
+	 }
+	 where $\gamma_\cdot \eqdef \sum_{b \in \sB} \gamma_b$.
+Model averaging
+	Using one model is very weak because there are many possible overlapping abstract inputs
+	 that we might want to use (e.g., the current file, the previous token).
+	Suppose we have $M$ \emph{submodels}, $p_m(y^S \mid x^S)$ for $m \in [M]$.
+	 where each submodel places a conditional distribution over the outputs
+	 in $S \subseteq [n]$.
+	Our goal is to combine the $M$ submodels.  The template is as follows:
+	 \eqn{
+	 p(y^{n} \mid x^{n}, D^{[n-1]})
+	 = \sum_{m=1}^M p(m \mid x^{n}, D^{[n-1]}) p_m(y^n \mid x^{n}, D^{[n-1]}).
+	 }
+		The first factor (the one of interest) is
+		 the \textbf{mixing proportion} based on previous data $D^{[n-1]}$ and the current input $x^n$.
+		The second factor provides the prediction under the model $m$ (can be derived easily).
+	How should we model the mixing proportion?
+	 Intuitions that a scheme for determining the proportions should capture:
+		We prefer models that have predicted accurately over the previous $n-1$ examples.
+		We prefer models that have lots of data support.
+	Simple Bayesian model averaging:
+		The generative process:
+			Choose a submodel $m \sim \text{Uniform}([M])$.
+			Generate the outputs $y^{[n]} \sim p_m(y^{[n]} \mid x^{[n]})$.
+		Simple probability yields:
+		 \eqn{
+		 p(m \mid D^{[n-1]}, x^n) \propto p(m) p_m(y^{[n-1]} \mid x^{[n-1]}, x^n).
+		 }
+		However, since $y^n$ is not observed,
+		 we have that $p(m \mid D^{[n-1]}, x^n) = p(m \mid D^{[n-1]})$.
+		 This is unfortunate because we are not taking the input into account when deciding
+		 which model to use.
+		This choice can be quite suboptimal if the accuracy of a model really depends
+		 on which inputs it is given.
+		 Consider the submodel where the abstract input is just the previous token.
+		 If the token is \texttt{list}, we might want to trust this submodel more,
+		 but when it is \texttt{;}, we might want to trust this submodel less.
+		This is the same problem faced in language modeling,
+		 but there we generally backoff to lower-order models.
+		 Here, the submodels don't necessarily respect a hierarchy.
+	Weighted majority:
+		We can maintain an adaptive distribution over the $m$ submodels, but we have the same
+		 problem that it's hard to capture the dependence on $x^n$.
+	Incorporating dependence on $x^n$ via average log-likelihood:
+		Intuitively, when assessing the quality of a submodel $m$,
+		 we should only use the examples that have the same abstract input $a^n$ as $x^n$.
+		 \eqn{
+		 p(m \mid D^{[n-1]}, x^n) \propto p(m) p_m(y^{S^{[n-1]}(a^n)} \mid x^{S^{[n-1]}(a^n)})^{|S^{[n-1]}(a^n)|^{-1}},
+		 }
+		 where we are intuitively taking the geometric average of the output probabilities
+		 corresponding to only examples $S^{[n-1]}(a^n)$
+		 under the submodel $m$.
+		The geometric average is important because each submodel will be supported
+		 by different amounts of data.
+		This is kind of hacky.

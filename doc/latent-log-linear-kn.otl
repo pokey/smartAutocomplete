@@ -1,0 +1,83 @@
+!escape false
+!preamble \newcommand\I{\mathbb I}
+Log-Linear Deconstruction of Smoothing in Language Models
+!format PI
+Problem setup
+	Notation
+		Let $\Sigma$ be the vocabulary.
+		Let $w \in \Sigma$ denote a word.
+		Let $s \in \Sigma^*$ denote a substring.
+		Given a string $s$ and a word $w$, let $s w$ denote the concatenation.
+		Given a substring $s$, let $s_+$ denote $s$ with the first word removed.
+	We are given a collection of counts of strings,
+	 from which we derive other statistics:
+		Counts $C(s w)$: these are just positive integers which could be:
+			Number of times $sw$ occurs in the corpus
+			Number of distinct words $u$ such that $usw$ occurs in the corpus
+			Either of these counts restricted to the current document or the last 1000 words
+		Existence $I_k(s w) = \I[C(s w) \ge k]$
+		 (we will mostly use $I_1$, higher $k$ for modified KN)
+		Support size $N(s) = \sum_{w \in \Sigma} I_1(s w)$
+		Total counts: $Z(s) = \sum_{w \in \Sigma} C(s w)$
+	Interpolated Kneser-Ney
+		Define the recurrence:
+		 \[ B(s w) = \frac{C(s w) - \delta I_1(s w)}{Z(s)} + \frac{\delta N(s) B(s_+ w)}{Z(s)} \]
+		Then $p(w \mid s) = B(s w)$ is an estimate.
+		The challenge of formulating this distribution as a log-linear model
+		 is that it is additive in addition to being multiplicative.
+		The key is to introduce an auxiliary latent variable $a \in \{ 1, \dots, K \}$
+		 and define
+		 \[ p_\theta(w, a \mid s) \propto \exp \{ \phi(w, a, s)^\top\theta \} \]
+		 so that
+		 \[ p_\theta(w \mid s) = \sum_{a=1}^K p_\theta(w, a \mid s) \]
+		 gives us what we want.
+		The intuition is that $B(s w)$ is a sum over three terms (ignoring the recursion for now),
+		 so that $K=3$ suffices.
+		 This requires some care, since $\frac{-\delta I_1(s w)}{Z(s)}$ term is negative,
+		 which is not allowed in log-linear models.
+		Learning $p_\theta$ given examples of $(s, w)$ is no longer convex,
+		 but it shouldn't be too bad.
+		First, rewrite the KN formula:
+		 \[ B(s w) = \frac{\max\{C(s w)-1,0\}}{Z(s)} +
+		 \frac{(1-\delta) I_1(s w)}{Z(s)} + \frac{\delta N(s) B(s_+ w)}{Z(s)} \]
+		Rewrite the formula as:
+		 \begin{align*}
+		 p_\theta(w, a \mid s) =
+		 & \underbrace{(1)}_{\theta_1} \underbrace{\log \max\{C(s w)-1, 0\} \I[a = 1]}_{\phi_1(w, a, s)} +
+		 \underbrace{(-1)}_{\theta_2} \underbrace{\log Z(s) \I[a = 1]}_{\phi_2(w, a, s)} + \\
+		 & \underbrace{(\log (1-\delta))}_{\theta_3} \underbrace{\I[a = 2]}_{\phi_3(w, a, s)} +
+		 \underbrace{(1)}_{\theta_4}\underbrace{\log I_1(s w) \I[a = 2]}_{\phi_4(w, a, s)} + \\
+		 & \underbrace{(-1)}_{\theta_5} \underbrace{\log Z(s) \I[a = 2]}_{\phi_5(w, a, s)} +
+		 \underbrace{(\log (\delta))}_{\theta_6} \underbrace{\I[a = 3]}_{\phi_6(w, a, s)} +
+		 \underbrace{(1)}_{\theta_7} \underbrace{\log N(s) \I[a = 3]}_{\phi_7(w, a, s)} + \\
+		 & \underbrace{(1)}_{\theta_8} \underbrace{\log B(s_+ w) \I[a = 3]}_{\phi_8(w, a, s)} +
+		 \underbrace{(-1)}_{\theta_9} \underbrace{\log Z(s) \I[a = 3]}_{\phi_9(w, a, s)}
+		 \end{align*}
+		Notes:
+			Some of the feature values are $-\infty$, which is really bad
+			 because then gradients are infinite.  Could replace these with some bound,
+			 but that's kind of hacky.
+			The preemptive discount $\max\{C(sw)-1,0\}$ is kind of clunky.
+			We still haven't handled $B(s_+ w)$, which also expands recursively into three terms per level.
+			 It should work out, but will require using some products.
+			 Need to work hard to keep the notation clean
+			We need to include many versions of $C(sw)$.
+		In summary, to overapproximate the set of features, define some features that don't involve the latent cluster $a$:
+			$\phi_1(s, w) = 1$
+			$\phi_2(s, w) = \log C(s w)$
+			$\phi_3(s, w) = \log I_1(s w)$
+			$\phi_4(s, w) = \log N(s)$
+			$\phi_5(s, w) = \log Z(s)$ 
+		Then define $\phi(s, a, w) = \phi(s, w) \otimes e(a)$,
+		 where $e(a) = (\I[a = 1], \dots \I[a = K])$ is the one-hot representation of $a$.
+		For an $n$-gram model, with $m$ types of counts (regular, diversity),
+		 then something like $K = 6 n m$ clusters suffices to represent.
+	Desiderata in language modeling (both for natural language and code)
+		Want fast training to figure out the parameters
+		Handle other domain knowledge
+			Locality of reference: people tend to refer to entities/variables that are mentioned recently
+			Analogy
+			Types
+			Words
+		Want online learning to handle changes in context
+		 (news varies over time, code varies depending on which project, which file).

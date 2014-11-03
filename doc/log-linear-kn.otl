@@ -1,0 +1,111 @@
+!escape false
+!preamble \newcommand\sA{\mathcal{A}}
+!preamble \newcommand\sB{\mathcal{B}}
+!preamble \newcommand\sX{\mathcal{X}}
+!preamble \newcommand\sY{\mathcal{Y}}
+!preamble \newcommand\R{\mathbb{R}}
+!preamble \newcommand\p[1]{\ensuremath{\left( #1 \right)}} % Parenthesis ()
+!preamble \newcommand\eqdef{\ensuremath{\stackrel{\rm def}{=}}} % Equal by definition
+!preamble \newcommand{\bone}{\mathbf{1}} % for vector one
+!preamble \newcommand\eqn[1]{\begin{align} #1 \end{align}} % Equation (array)
+!preamble \newcommand\AF[2]{\mathcal{AF}(#1, #2)} % Ascending factorial
+!preamble \newcommand\cross{\times}
+!preamble \newcommand\ind[2]{\ensuremath{\mathbb I_{#1}\left( #2 \right)}}
+!preamble \newcommand\seen[1]{\ensuremath{\ind{1+}{#1}}}
+!preamble \newcommand\pool[1]{\ensuremath{n_{1+}\left( #1~\cdot\right)}}
+!preamble \newcommand\diversity[1]{\ensuremath{n_{1+}\left( \cdot~#1 \right)}}
+!preamble \newcommand\divTotal[1]{\ensuremath{n_{1+}\left( \cdot~#1~\cdot\right)}}
+!preamble \newcommand\pkn[1]{\ensuremath{\hat p_\text{KN}\left( #1 \right)}} % Kneser-Ney backoff probability
+Log-linear reconstruction of Kneser-Ney
+!format PI
+Problem setup
+	We are given a set of training documents, each consisting of a
+	 sequence of words taken from a set $V$, called the \emph{vocabulary}.
+	We are given a document consisting of a sequence of words $w_1\ldots w_n$
+	 taken from $V$.
+	Let $w_i^j$ denote the sequence of words $w_i\ldots w_j$.
+	We are trying to predict $w_i$ given $w_1^{i-1}$.
+Kneser-Ney
+	We use an $n$-gram model.  That is, we assume
+	 $p(w_i|w_1^{i-1})=p(w_i|w_{i-n+1}^{i-1})$.
+	Define the following statistics of the training documents:
+		$c(w_i)$ is the number of times word $w_i$ occurred in the
+		 training documents.
+		$c(w_{i-k+1}^i)$ is the number of times $k$-gram $w_{i-k+1}^i$
+		 occurred in the training documents.
+		$\seen{w_{i-k+1}^i}$ is 1 if $c(w_{i-k+1}^i)>0$ and 0
+		 otherwise.
+		$\pool{w_{i-k+1}}$ is the number of different words that
+		 have appeared after $k$-gram $w_{i-k+1}^i$
+		$\diversity{w_{i-k+1}^i}$ is the number of different words that
+		 have appeared before $k$-gram $w_{i-k+1}^i$
+		$\divTotal{w_{i-k+1}^i}\eqdef\sum_{w\in V}\diversity{w_{i-k+1}w}$
+	Let $d_1,\ldots,d_n$ be discout parameters used for probability
+	 estimation, with $0\leq d_i\leq 1$ for all $d_i$.
+	We estimate the probability $p(w_i|w_{i-n+1}^{i-1})$ as
+	 \begin{multline}
+	 \hat p(w_i|w_{i-n+1}^{i-1})\eqdef
+	 \frac{c(w_{i-n+1}^i)-\max\left\{c(w_{i-n+1}^i)-d_n, 0\right\}}
+	 {c(w_{i-n+1}^{i-1})} + \\
+	 \frac{d_n\cdot\pool{w_{i-n+1}^{i-1}}}{c(w_{i-n+1}^{i-1})}\cdot
+	 \pkn{w_i|w_{i-n+2}^{i-1}}
+	 \end{multline}
+	 where
+	 \begin{multline}
+	 \pkn{w_i|w_{i-k+1}^{i-1}}\eqdef
+	 \frac{\diversity{w_{i-k+1}^i}-\max\left\{\diversity{w_{i-k+1}^i}-d_k, 0\right\}}
+	 {\divTotal{w_{i-k+1}^{i-1}}} + \\
+	 \frac{d_k\cdot\pool{w_{i-k+1}^{i-1}}}{\divTotal{w_{i-k+1}^{i-1}}}\cdot
+	 \pkn{w_i|w_{i-k+2}^{i-1}}
+	 \end{multline}
+	 The recursion terminates by setting
+	 \begin{equation}
+	 \pkn{w_i|w_{i}^{i-1}}\eqdef\pkn{w_i}\eqdef
+	 \frac{\diversity{w^i}-\max\left\{\diversity{w^i}-d_1, 0\right\}}
+	 {\divTotal{w^{i-1}}}
+	 \end{equation}
+	 Note that the base distribution does not normalize.
+Log-linear reconstruction
+	We define a log-linear model.
+	Let $f_1,\ldots,f_{2n}$ be a set of functions each mapping from the first
+	 $i-1$ words and a candidate word to a real number.  We call these
+	 functions features, and define them as follows:
+		We define two features corresponding to the top-level $n$-gram, which
+		 are defined as follows:
+			Let
+			 \eqn{f_{2n-1}(w_1^{i-1},w_i)\eqdef \frac{c(w_{i-n+1}^i)}{c(w_{i-n+1}^{i-1})}}
+			 be the feature corresponding to the top-level $n$-gram
+			 probability.
+			Let
+			 \eqn{f_{2n}(w_1^{i-1},w_i)\eqdef \frac{\seen{w_{i-n+1}^i}}{c(w_{i-n+1}^{i-1})}}
+			 This corresponds to the top-level discount $d_n$.  
+		The remaining features represent backoff probabilities and discounts.
+		 For each $k\in{1,\ldots,n-1}$,
+			Let
+			 \eqn{f_{2k-1}(w_1^{i-1},w_i)\eqdef
+			 \frac{\diversity{w_{i-k+1}^i}} {\divTotal{w_{i-k+1}^{i-1}}}
+			 \cdot\frac{\pool{w_{i-n+1}^{i-1}}}{c(w_{i-n+1}^{i-1})}
+			 \cdot\prod_{j=k+1}^{n-1}
+			 \frac{\pool{w_{i-j+1}^{i-1}}}{\divTotal{w_{i-j+1}^{i-1}}}}
+			 be the feature corresponding to the $k$-gram probability
+			 multiplied by all the pool sizes of $j$-grams larger than
+			 $k$.
+			Let
+			 \eqn{f_{2k}(w_1^{i-1},w_i)\eqdef
+			 \frac{\seen{w_{i-k+1}^i}} {\divTotal{w_{i-k+1}^{i-1}}}
+			 \cdot\frac{\pool{w_{i-n+1}^{i-1}}}{c(w_{i-n+1}^{i-1})}
+			 \cdot\prod_{j=k+1}^{n-1}
+			 \frac{\pool{w_{i-j+1}^{i-1}}}{\divTotal{w_{i-j+1}^{i-1}}}}
+			 This corresponds to the discount $d_k$ multiplied by all the pool
+			 sizes of $j$-grams larger than $k$.  
+	We associate with each feature $f_i$ a weight $a_i$.  We make our
+	 probability estimate by taking
+	 \eqn{\hat p(w_i|w_1^{i-1})\eqdef
+	 \frac{\exp\left(\sum_{k=1}^{2n}a_k\cdot f_k(w_1^{i-1},w^i)\right)}
+	 {\sum_{w\in V}\exp\left(\sum_{k=1}^{2n}a_k\cdot f_k(w_1^{i-1},w)\right)}}
+	To recover Kneser-Ney, let
+		$a_{2n-1}=1$
+		$a_{2n}=-d_n$
+		For each $k\in{1,\ldots,n-1}$, let
+			$a_{2k-1}=\prod_{j=k+1}^n d_j$
+			$a_{2k}=-d_k\cdot\prod_{j=k+1}^n d_j$

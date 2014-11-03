@@ -1,0 +1,29 @@
+- Queue of new n-grams, taken by diffing old and new ngram-ized versions of
+  a doc every time we train
+- LM trained on past 5 documents user has focused
+
+- If an identifier has local scope, and has not been accessed, then it is more
+  likely to be accessed in the future.  For example "x = 5; return ...", here
+  x is likely
+- Is the identifier the file name?
+- File extension
+- Use capitalization.  For now, just filter based on capped version if it has
+  any capitalization
+- How could we learn that it is common to do Ctrl-P with nothing when we want
+  the last identifier?
+- When you see 'foo.', see how near the candidate has been used to 'foo'.
+  This could potentially catch 'args.directories' in server.py
+- What function we are passing an argument to, and which argument
+- Correlation between contexts (ident followed by '= []' implies it will be
+  seen preceded by 'in' somewhere)
+- Look forward in file
+- Words in visible buffers are more likely
+- features based on types of tokens (token shape) and conjoin it with
+  everything.
+- features which associate the predicted token with any
+  individual words seen in recent history.
+- analogy (higher-order) features:
+  + f(x) g(x)   f(y) g(<should predict y>)
+  + Look at the counts of ($s1,$s2), where $s1($x) ... $s2($x) appears
+  + Importantly, $x is the same one
+

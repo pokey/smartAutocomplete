@@ -1,0 +1,189 @@
+@font-face {
+   font-family: helvetica_neue_light;
+   src: url('HelveticaLight.ttf');
+}
+
+@font-face {
+   font-family: anonymous;
+   src: url('AnonymousPro.ttf');
+}
+
+body {
+  font-family: helvetica_neue_light;
+  color: gray;
+  background-color: black;
+}
+
+pre {
+  font-family: anonymous;
+}
+
+.featureName {
+  padding-right:7px;
+}
+
+.featureWeight {
+  text-align: right;
+  padding-right: 4px;
+}
+
+.featureValue {
+  text-align: right;
+  padding-left: 4px;
+}
+
+.controls {
+  background-color: rgba(0,0,0,0.8);
+  position: absolute;
+  top: 200px;
+  left: 0px;
+  border: 2px solid rgb(107, 107, 107);
+  padding-top: 2px;
+  padding-left: 5px;
+  padding-right: 6px;
+}
+
+.candidateToken {
+  font-family: anonymous;
+}
+
+.context {
+  font-family: anonymous;
+  text-align: right;
+  padding-right: 10px;
+}
+
+.num {
+  text-align: right;
+}
+
+.trueToken {
+  float:left;
+}
+
+.featureTable {
+  font-size: .9em;
+  margin-left: 6px;
+  margin-right: 6px;
+}
+
+.featureWeights {
+  font-size: .9em;
+  margin-left: 6px;
+  margin-right: 6px;
+}
+
+.candidateList {
+  float:left;
+  margin-left:23px;
+}
+
+#zexecList {
+  display: none;
+}
+
+.hovered {
+  background-color: #691212;
+}
+
+#ztokenInfo {
+  clear:both;
+  /* float:right; */
+}
+
+.offBeam {
+  color: #59BC74;
+}
+
+.oov {
+  color: #47635B;
+}
+
+.notIdent {
+  color: #5E6FF3;
+}
+
+.topPick {
+  border-bottom: 1px solid rgb(158, 158, 158);
+  padding-bottom: 1px;
+}
+
+.baselineTopPick {
+  border-bottom: 1px solid #ffff00;
+  padding-bottom: 1px;
+}
+
+ul {
+  list-style-type: none;
+  display:block;
+}
+
+li {
+  display:block;
+  margin-bottom: 0px;
+}
+
+.candidateHead {
+  border-bottom: 1px solid rgb(88, 88, 88);
+  padding-bottom: 2px;
+  padding-left: 2px;
+  margin-bottom: 2px;
+}
+
+.true {
+  margin-bottom:10px;
+}
+
+.candidate {
+  margin-bottom:10px;
+}
+
+li.docs {
+  line-height: 44px;
+}
+
+.candidateList ul {
+  padding-left: 0px;
+}
+
+.candidateList ul {
+  margin: 0px;
+}
+
+li a {
+  text-decoration:none;
+  display:block;
+  float:left;
+  clear:both;
+  padding-right:22px;
+  padding-left:22px;
+  margin-left: -44px;
+}
+
+.selected {
+  background-color: rgb(41, 24, 24);
+}
+
+.baseline {
+  background-color: rgb(27, 22, 22);
+}
+
+a:link {
+  color: #e4454d;
+}
+
+a:visited {
+  color: #C62786;
+}
+
+a:hover {
+  color: #FF000D;
+}
+
+a.execEntry {
+  color: #31925C;
+}
+
+a:hover.execEntry {
+  color: #40BD78;
+}

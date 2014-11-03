@@ -1,0 +1,17 @@
+<div class="trueToken">
+  <div class="true"> {{candidate trueToken}} </div>
+  <div class="diff">
+    <div class="candidateHead">
+      diff ({{num diff.sum}})
+    </div>
+    {{featureWeights diff.featureWeights}}
+  </div>
+</div>
+
+<div class="candidateList">
+  <ul>
+  {{#each candidates}}
+  <li class="candidate"> {{candidate this}} </li>
+  {{/each}}
+  </ul>
+</div>
