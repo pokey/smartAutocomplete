@@ -53,7 +53,8 @@ pull('fig/fig.jar', nil, {:symlink => true})
 pull('fig/external/servlet-api.jar', nil, {:symlink => true})
 
 # Libraries
-pull("/u/nlp/data/smart-autocomplete/resources/guava-15.0.jar")
+system 'cd lib && ' +
+       'curl -O http://search.maven.org/remotecontent?filepath=com/google/guava/guava/15.0/guava-15.0.jar' or exit 1
 updateGit('https://github.com/requirejs/text.git', './webapp/scripts/lib')
 
 # Gson
@@ -75,11 +76,16 @@ system 'cd lib && ' +
        'cd berkeleylm-1.1.5 && ant && cd .. && ' +
        'ln -sf berkeleylm-1.1.5/jar/berkeleylm.jar berkeleylm.jar' or exit 1
 
-pull('/scr/pokey/smartAutocomplete/datasets/core-d3', 'datasets')
-
 # Unnecessary libraries
-# FixMe: [usability] Have command-line switches to pull for these
+# FixMe: [usability] Have command-line switches to pull these
 if false
+   pull('/scr/pokey/smartAutocomplete/datasets/core-d3', 'datasets')
+   pull('/u/nlp/data/smart-autocomplete/datasets/core-boto', 'datasets')
+   pull('/u/nlp/data/smart-autocomplete/datasets/core-log4j', 'datasets')
+   pull('/u/nlp/data/smart-autocomplete/datasets/core-tomcat', 'datasets')
+   pull('/scr/pokey/smartAutocomplete/datasets/core-django', 'datasets')
+   pull('/scr/pokey/smartAutocomplete/datasets/core-node', 'datasets')
+
    # Srilm
    pull("/u/nlp/data/smart-autocomplete/resources/srilm.tgz")
    system 'mkdir -p lib/srilm' or exit 1
@@ -88,9 +94,6 @@ if false
    system 'make -C lib/srilm World' or exit 1
 
    # Datasets
-   pull('/u/nlp/data/smart-autocomplete/datasets/core-boto', 'datasets')
-   pull('/u/nlp/data/smart-autocomplete/datasets/core-log4j', 'datasets')
-   pull('/u/nlp/data/smart-autocomplete/datasets/core-tomcat', 'datasets')
 
    pull('/scr/pokey/smartAutocomplete/datasets/core-storm', 'datasets')
    pull('/scr/pokey/smartAutocomplete/datasets/core-elasticsearch', 'datasets')
@@ -102,7 +105,6 @@ if false
    pull('/scr/pokey/smartAutocomplete/datasets/core-Android-ViewPagerIndicator', 'datasets')
    pull('/scr/pokey/smartAutocomplete/datasets/core-android-async-http', 'datasets')
    pull('/scr/pokey/smartAutocomplete/datasets/core-spring-framework', 'datasets')
-   pull('/scr/pokey/smartAutocomplete/datasets/core-django', 'datasets')
    pull('/scr/pokey/smartAutocomplete/datasets/core-requests', 'datasets')
    pull('/scr/pokey/smartAutocomplete/datasets/core-flask', 'datasets')
    pull('/scr/pokey/smartAutocomplete/datasets/core-httpie', 'datasets')
@@ -112,7 +114,6 @@ if false
    pull('/scr/pokey/smartAutocomplete/datasets/core-Probabilistic-Programming-and-Bayesian-Methods-for-Hackers', 'datasets')
    pull('/scr/pokey/smartAutocomplete/datasets/core-python-guide', 'datasets')
    pull('/scr/pokey/smartAutocomplete/datasets/core-jquery', 'datasets')
-   pull('/scr/pokey/smartAutocomplete/datasets/core-node', 'datasets')
    pull('/scr/pokey/smartAutocomplete/datasets/core-angular.js', 'datasets')
    pull('/scr/pokey/smartAutocomplete/datasets/core-impress.js', 'datasets')
    pull('/scr/pokey/smartAutocomplete/datasets/core-backbone', 'datasets')
