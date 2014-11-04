@@ -75,6 +75,8 @@ system 'cd lib && ' +
        'cd berkeleylm-1.1.5 && ant && cd .. && ' +
        'ln -sf berkeleylm-1.1.5/jar/berkeleylm.jar berkeleylm.jar' or exit 1
 
+pull('/scr/pokey/smartAutocomplete/datasets/core-d3', 'datasets')
+
 # Unnecessary libraries
 # FixMe: [usability] Have command-line switches to pull for these
 if false
@@ -111,7 +113,6 @@ if false
    pull('/scr/pokey/smartAutocomplete/datasets/core-python-guide', 'datasets')
    pull('/scr/pokey/smartAutocomplete/datasets/core-jquery', 'datasets')
    pull('/scr/pokey/smartAutocomplete/datasets/core-node', 'datasets')
-   pull('/scr/pokey/smartAutocomplete/datasets/core-d3', 'datasets')
    pull('/scr/pokey/smartAutocomplete/datasets/core-angular.js', 'datasets')
    pull('/scr/pokey/smartAutocomplete/datasets/core-impress.js', 'datasets')
    pull('/scr/pokey/smartAutocomplete/datasets/core-backbone', 'datasets')

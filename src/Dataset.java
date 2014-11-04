@@ -74,6 +74,8 @@ public class Dataset {
     Map<String, Integer> docsPerLang = new HashMap<String, Integer>();
     for (int i = 0; i < D; i++) {
       Document doc = documents.get(i);
+      String lang = Main.getLanguage(doc.path);
+      if (lang.equals("")) continue;
       if (inRange(countRange, i)) doc.count = true;
       if (inRange(tuneRange, i)) {
         doc.tune = true;
@@ -83,7 +85,7 @@ public class Dataset {
       if (inRange(webRange, i)) doc.web = true;
       if (doc.count) count++;
       if (doc.eval) eval++;
-      MapUtils.incr(docsPerLang, Main.getLanguage(doc.path));
+      MapUtils.incr(docsPerLang, lang);
     }
 
     ReadData.readFixedPaths(documents);

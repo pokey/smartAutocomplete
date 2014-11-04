@@ -32,11 +32,11 @@ run!(
                   o('languages', 'py', 'java', 'sh', 'rb', 'js', 'html', 'css', 'vim', 'cpp')), # Run plugin
 
     # For running benchmarks
-    'tune' => l(o('count', '0,1'), o('tune', '-20,-10'), o('eval', '-10,1')), # Tune for a bit before evaluating, then stop tuning
-    'noTune' => l(o('count', '0,1'), o('eval', '-10,1')), # No discriminative fine-tuning
-    'count' => l(o('count', '0,1')), # Just do counting
-    'tuneFixedEval' => l(o('count', '0,1'), o('tune', '0.9,1'), o('tuningTotal', 5000)), # Eval on file specified with dataset
-    'noTuneFixedEval' => l(o('count', '0,1')), # Eval on file specified with dataset
+    'tune' => l(o('data.countRange', '0,1'), o('data.tuneRange', '-20,-10'), o('eval', '-10,1')), # Tune for a bit before evaluating, then stop tuning
+    'noTune' => l(o('data.countRange', '0,1'), o('eval', '-10,1')), # No discriminative fine-tuning
+    'count' => l(o('data.countRange', '0,1')), # Just do counting
+    'tuneFixedEval' => l(o('data.countRange', '0,1'), o('data.tuneRange', '0.9,1'), o('tuningTotal', 5000)), # Eval on file specified with dataset
+    'noTuneFixedEval' => l(o('data.countRange', '0,1')), # Eval on file specified with dataset
 
     # Other modes
     'sample' => l(o('sample'), o('ngramOrder', 2), o('initLLParams'), o('featureDomains', 'Test2'), o('sampleCount', 10000)),
@@ -80,7 +80,8 @@ run!(
   sel(:data, {
     '' => l(),
     'd3' => l(o('inPaths', 'lib/datasets/core-d3'), o('tokenizeCode', true),
-              o('FixedRare.file', '/u/nlp/data/smart-autocomplete/state/execs/243.exec/proj.counts')),
+              o('FixedRare.file', '/u/nlp/data/smart-autocomplete/state/execs/243.exec/proj.counts'),
+              o('languages', 'js')),
     'node' => l(o('inPaths', 'lib/datasets/core-node'), o('tokenizeCode', true),
                 o('FixedRare.file', '/u/nlp/data/smart-autocomplete/state/execs/236.exec/proj.counts')),
     'django' => l(o('inPaths', 'lib/datasets/core-django'), o('tokenizeCode', true),

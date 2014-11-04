@@ -50,8 +50,25 @@ data
 
 ## Running experiments
 
-FIXME: Describe how to do this
+To run a benchmark on the d3 dataset, execute the following
+command:
+
+    ./run @mode=tune @data=d3
+
+Results of the experiment will be put into a directory called
+_state_ in the current directory.  The location of the _state_
+directory can be modified by adding a _@state=_ option to _./run_.
 
 ### Visualizing experiments
 
-FIXME: Describe how to do this
+Once you have run an experiment, you can visualize the results by
+starting a web server:
+
+    java -cp classes:lib/* smartAutocomplete.httpServer.StandaloneHttpServer state
+
+Then go to localhost:8040/exec/<id> in a browser to visualize the
+experiment in directory <id>.exec.  This doesn't work on every
+file, so if you don't see any colors when you click on a file, try
+another file.  You can click on tokens to see information on how
+the classifier performed, and click on feature names to see details
+of how the feature made its prediction.
