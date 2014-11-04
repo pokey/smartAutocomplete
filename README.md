@@ -66,8 +66,8 @@ starting a web server:
 
     java -cp classes:lib/* smartAutocomplete.httpServer.StandaloneHttpServer state
 
-Then go to localhost:8040/exec/<id> in a browser to visualize the
-experiment in directory <id>.exec.  This doesn't work on every
+Then go to localhost:8040/exec/&lt;id&gt; in a browser to visualize the
+experiment in directory &lt;id&gt;.exec.  This doesn't work on every
 file, so if you don't see any colors when you click on a file, try
 another file.  You can click on tokens to see information on how
 the classifier performed, and click on feature names to see details
