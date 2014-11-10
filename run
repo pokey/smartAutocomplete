@@ -26,10 +26,13 @@ run!(
   letDefault(:mode, 'server'),
   sel(:mode, {
     # Plugin server
-    'server' => l(o('tuneCountSplit', '0.9'), o('tuningTotal', 2000),
-                  o('completionServer'), o('tokenizeCode', true),
+    'server' => l(o('tuneCountSplit', '0.9'),
+                  o('tuningTotal', 2000), o('completionServer'),
+                  o('tokenizeCode', true),
                   o('alwaysUseFileName', false),
-                  o('languages', 'py', 'java', 'sh', 'rb', 'js', 'html', 'css', 'vim', 'cpp')), # Run plugin
+                  o('maxFileSize', 200000),
+                  o('languages', 'py', 'java', 'sh', 'rb', 'js',
+                                 'html', 'css', 'vim', 'cpp')), # Run plugin
 
     # For running benchmarks
     'tune' => l(o('data.countRange', '0,1'), o('data.tuneRange', '-20,-10'), o('eval', '-10,1')), # Tune for a bit before evaluating, then stop tuning

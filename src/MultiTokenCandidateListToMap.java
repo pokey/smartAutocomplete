@@ -97,7 +97,8 @@ public class MultiTokenCandidateListToMap {
     map.put("this", InferStateToMap.toMap(last, featureDomains,
                                           params, context));
     List<Object> candidateInfos = new ArrayList<Object>();
-    for (int i=0; i<numCandidates; i++) {
+    int len = Math.min(numCandidates, nextCandidates.size());
+    for (int i=0; i<len; i++) {
       Candidate c = nextCandidates.get(i);
       if (c.token.equals(last.token)) continue;
       candidateInfos.add(InferStateToMap.toMap(c, featureDomains,
@@ -128,7 +129,8 @@ public class MultiTokenCandidateListToMap {
     map.put("maxCandidates", maxCandidates);
     map.put("numCandidates", nextCandidates.size());
     List<Object> candidateInfos = new ArrayList<Object>();
-    for (int i=0; i<numCandidates; i++) {
+    int len = Math.min(numCandidates, nextCandidates.size());
+    for (int i=0; i<len; i++) {
       Candidate c = nextCandidates.get(i);
       candidateInfos.add(InferStateToMap.toMap(c, featureDomains,
                                                params, context));

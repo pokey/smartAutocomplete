@@ -22,7 +22,7 @@ public class Dataset {
   @Option(gloss="Don't tune more than x tokens") public int tuningMax = Integer.MAX_VALUE;
   @Option(gloss="Tune on approximately x tokens, distributed evenly accross docs in range")
     public int tuningTotal = 0;
-  @Option(gloss="Count on approximately x tokens, distributed evenly accross docs in range")
+  @Option(gloss="Count approximately x tokens, distributed evenly accross docs in range")
     public int countTotal = 0;
   @Option(gloss="Count on first x fraction of docs, and tune on rest")
     public double tuneCountSplit = -1.0;

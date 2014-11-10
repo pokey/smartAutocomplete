@@ -122,7 +122,7 @@ public class CompletionServer {
         String path = URLDecoder.decode(match.group(1));
         FileEvent event = FileEvent.fromId(Integer.parseInt(match.group(2)));
 
-        if (inTrainingDir(path) && Main.supportsLanguage(path)) {
+        if (isEligible(path, content)) {
           handleDoc(path,
                     new Document(path, Tokenizer.tokenize(content, path)));
           logs("Training: path=%s, event=%s", path, event);
@@ -132,7 +132,8 @@ public class CompletionServer {
 
         Http.send(t, "text/plain", "Thanks");
       } catch (Exception e) {
-        System.err.println("Caught exception in completion: " + e);
+        System.err.println("Caught exception in training: " + e);
+        System.err.println("Uri: " + t.getRequestURI());
         e.printStackTrace();
         Http.sendError(t);
       }
@@ -149,11 +150,13 @@ public class CompletionServer {
   static private final Pattern eligibleRegex =
     Pattern.compile("path=([^&]+)&loc=(\\d+)&up=(\\d+)");
 
+  private boolean isEligible(String path, String content) throws IOException {
+    return content.length() < ReadData.maxFileSize &&
+           !ReadData.isExcluded(new File(path)) &&
+           inTrainingDir(path) && Main.supportsLanguage(path);
+  }
+
   class EligibleHandler implements HttpHandler {
-    private String recordSep = Character.toString((char) 30);
-
-    private WhitespaceModel whitespaceModel = new WhitespaceModel();
-
     public void handle(HttpExchange t) throws IOException {
       try {
         URI uri = t.getRequestURI();
@@ -164,19 +167,15 @@ public class CompletionServer {
         int loc = Integer.parseInt(match.group(2));
         boolean up = match.group(3).equals("1");
 
-        List<Token> tokens = Tokenizer.tokenize(content, path);
-        int pos = Collections.binarySearch(tokens, new Token("", loc),
-                                           tokenComparator);
-        if (pos < 0) pos = -(pos+1);
+        logs("Eligibility check: path=%s, loc=%d, up=%b", path,
+             loc, up);
 
-        logs("Eligibility check: path=%s, loc=%d, up=%b, pos=%s",
-             path, loc, up, pos);
-
-        boolean eligible = inTrainingDir(path) && Main.supportsLanguage(path);
+        boolean eligible = isEligible(path, content);
 
         Http.send(t, "text/plain", eligible ? "1" : "0");
       } catch (Exception e) {
         System.err.println("Caught exception in eligibility check: " + e);
+        System.err.println("Uri: " + t.getRequestURI());
         e.printStackTrace();
         Http.sendError(t);
       }
@@ -245,6 +244,7 @@ public class CompletionServer {
         yamlOut.flush();
       } catch (Exception e) {
         System.err.println("Caught exception in completion: " + e);
+        System.err.println("Uri: " + t.getRequestURI());
         e.printStackTrace();
         Http.sendError(t);
       }
@@ -312,7 +312,8 @@ public class CompletionServer {
 
         Http.send(t, "text/plain", "Thanks");
       } catch (Exception e) {
-        System.err.println("Caught exception in completion: " + e);
+        System.err.println("Caught exception in accepted: " + e);
+        System.err.println("Uri: " + t.getRequestURI());
         e.printStackTrace();
         Http.sendError(t);
       }
