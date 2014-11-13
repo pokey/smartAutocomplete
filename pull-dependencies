@@ -42,7 +42,7 @@ end
 # system 'make -C refdb' or exit 1
 
 # For making figures
-updateGit('https://github.com/percyliang/sfig')
+# updateGit('https://github.com/percyliang/sfig')
 
 ############################################################
 
@@ -53,28 +53,36 @@ pull('fig/fig.jar', nil, {:symlink => true})
 pull('fig/external/servlet-api.jar', nil, {:symlink => true})
 
 # Libraries
-system 'cd lib && ' +
-       'curl -O http://search.maven.org/remotecontent?filepath=com/google/guava/guava/15.0/guava-15.0.jar' or exit 1
-updateGit('https://github.com/requirejs/text.git', './webapp/scripts/lib')
+unless File.exists?('lib/guava-15.0.jar')
+  system 'cd lib && ' +
+         'curl -O http://search.maven.org/remotecontent?filepath=com/google/guava/guava/15.0/guava-15.0.jar' or exit 1
+  updateGit('https://github.com/requirejs/text.git', './webapp/scripts/lib')
+end
 
 # Gson
-system 'cd lib && ' +
-       'curl -O https://google-gson.googlecode.com/files/google-gson-2.2.4-release.zip && ' +
-       'unzip -o google-gson-2.2.4-release.zip && ' +
-       'ln -sf google-gson-2.2.4/gson-2.2.4.jar gson-2.2.4.jar' or exit 1
+unless File.exists?('lib/google-gson-2.2.4-release.zip')
+  system 'cd lib && ' +
+         'curl -O https://google-gson.googlecode.com/files/google-gson-2.2.4-release.zip && ' +
+         'unzip -o google-gson-2.2.4-release.zip && ' +
+         'ln -sf google-gson-2.2.4/gson-2.2.4.jar gson-2.2.4.jar' or exit 1
+end
 
 # SnakeYaml
-system 'cd lib && ' +
-       'curl -O https://snakeyaml.googlecode.com/files/SnakeYAML-all-1.11.zip && ' +
-       'unzip -o SnakeYAML-all-1.11.zip && ' +
-       'ln -sf snakeyaml/target/snakeyaml-1.11.jar snakeyaml-1.11.jar' or exit 1
+unless File.exists?('lib/SnakeYAML-all-1.11.zip')
+  system 'cd lib && ' +
+         'curl -O https://snakeyaml.googlecode.com/files/SnakeYAML-all-1.11.zip && ' +
+         'unzip -o SnakeYAML-all-1.11.zip && ' +
+         'ln -sf snakeyaml/target/snakeyaml-1.11.jar snakeyaml-1.11.jar' or exit 1
+end
 
 # BerkeleyLM
-system 'cd lib && ' +
-       'curl -O https://berkeleylm.googlecode.com/files/berkeleylm-1.1.5.tar.gz && ' +
-       'tar -xzf berkeleylm-1.1.5.tar.gz && ' +
-       'cd berkeleylm-1.1.5 && ant && cd .. && ' +
-       'ln -sf berkeleylm-1.1.5/jar/berkeleylm.jar berkeleylm.jar' or exit 1
+unless File.exists?('lib/berkeleylm-1.1.5.tar.gz')
+  system 'cd lib && ' +
+         'curl -O https://berkeleylm.googlecode.com/files/berkeleylm-1.1.5.tar.gz && ' +
+         'tar -xzf berkeleylm-1.1.5.tar.gz && ' +
+         'cd berkeleylm-1.1.5 && ant && cd .. && ' +
+         'ln -sf berkeleylm-1.1.5/jar/berkeleylm.jar berkeleylm.jar' or exit 1
+end
 
 # Unnecessary libraries
 # FixMe: [usability] Have command-line switches to pull these
