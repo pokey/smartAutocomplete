@@ -260,8 +260,7 @@ except Exception, e:
    vim.command("let g:eligible=0")
 
 EOF
-  return g:eligible ? (a:val ? "\<C-X>\<C-U>\<C-P>\<C-P>" : "\<C-X>\<C-U>") :
-                      (a:val ? "\<C-P>" : "\<C-N>")
+  return g:eligible ? (a:val ? "\<C-X>\<C-U>\<C-P>\<C-P>" : "\<C-X>\<C-U>") : (a:val ? "\<C-P>" : "\<C-N>")
 endfunction
 
 
