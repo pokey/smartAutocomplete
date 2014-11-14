@@ -5,7 +5,7 @@ require './fig/lib/execrunner'
 ngramOrder = 4;
 
 if ARGV.size == 0
-   puts "Use -inDirs to specify a list of directories in which to perform " +
+   puts "Use -inPaths to specify a list of directories in which to perform " +
         "completions"
    exit 1
 end
