@@ -55,9 +55,11 @@ pull('fig/external/servlet-api.jar', nil, {:symlink => true})
 # Libraries
 unless File.exists?('lib/guava-15.0.jar')
   system 'cd lib && ' +
-         'curl -O http://search.maven.org/remotecontent?filepath=com/google/guava/guava/15.0/guava-15.0.jar' or exit 1
+         'curl -O https://repo1.maven.org/maven2/com/google/guava/guava/15.0/guava-15.0.jar' or exit 1
   updateGit('https://github.com/requirejs/text.git', './webapp/scripts/lib')
 end
+# If above guava uri doesn't work, can try
+# http://search.maven.org/remotecontent?filepath=com/google/guava/guava/15.0/guava-15.0.jar
 
 # Gson
 unless File.exists?('lib/google-gson-2.2.4-release.zip')
