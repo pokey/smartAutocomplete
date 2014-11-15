@@ -39,15 +39,6 @@ possible output completion _y_ given the input context _x_.
 - Output completion _y_: a sequence of characters to be inserted at the current
   position in the current file.
 
-## Old Python verson
-
-To run:
-
-    server/server.py <directory to your project>
-
-FIXME: Talk about how to use Python version to keep track of usage
-data
-
 ## Running experiments
 
 To run a benchmark on the d3 dataset, execute the following
