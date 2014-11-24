@@ -55,6 +55,16 @@ class AutocompletionHandler(BaseHTTPRequestHandler):
          self.end_headers()
          self.wfile.write('Thanks')
          return 
+      match = re.match('/addDir\?dir=([^&]+)', self.path)
+      if match:
+         content = self.rfile.read(int(self.headers['Content-Length']))
+         directory = urllib.unquote_plus(match.group(1))
+         # FixMe: [correctness] Add dir
+         # self.server.lister.train(path, content, event)
+         self.send_response(200)
+         self.end_headers()
+         self.wfile.write('Thanks')
+         return         
       match = re.match('/test\?dirs=([^&]+)', self.path)
       if match:
          dirs = urllib.unquote_plus(match.group(1)).split()

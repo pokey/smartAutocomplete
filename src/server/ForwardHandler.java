@@ -12,7 +12,8 @@ import smartAutocomplete.util.*;
 
 class ForwardHandler implements HttpHandler {
   private final String prefix;
-  private final ExecutorService executor = Executors.newFixedThreadPool(1);
+  private final ExecutorService executor =
+    Executors.newFixedThreadPool(1);
 
   public ForwardHandler(String prefix) {
     this.prefix = prefix;

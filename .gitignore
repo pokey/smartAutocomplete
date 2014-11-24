@@ -1,0 +1,20 @@
+*.swp
+*.swo
+*.pyc
+*.log
+.smartautocomplete/
+
+# Libraries
+/lib/
+/fig/
+/sfig/
+/refdb/
+
+# Generated
+/classes/
+/state/
+
+# Temporary files
+/foo
+/bar
+/make.out

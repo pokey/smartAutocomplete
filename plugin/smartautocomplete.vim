@@ -129,6 +129,32 @@ EOF
    endif
 endfunction
 
+" This function can be called to tell the server to train on the
+" directory containing the current file.
+function! g:AddParentDir()
+   call s:DetermineUri()
+
+python << EOF
+import vim, urllib, urllib2, os
+
+URI = str(vim.eval("s:uriBase")) + '/addDir'
+
+try:
+   # Current path of buffer
+   path = str(vim.eval("expand('%:p')"))
+   parent = os.path.dirname(path)
+
+   URI += "?dir=" + urllib.quote_plus(parent)
+   r = urllib2.Request(URI)
+   urllib2.urlopen(r)   
+
+except Exception, e:
+   print e
+
+EOF
+   return 0
+endfunction
+
 ""
 " This function is called every time a buffer is switched or is closed. When
 " this happens, we submit its contents as training data, so that they can be

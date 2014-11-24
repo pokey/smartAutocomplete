@@ -4,6 +4,7 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.regex.*;
+import java.util.concurrent.*;
 
 import com.sun.net.httpserver.*;
 
@@ -37,6 +38,9 @@ public class CompletionServer {
   private Map<String, Document> docs = new HashMap<String, Document>();
   private List<File> trainingDirs = new ArrayList<File>();
 
+  private final ExecutorService executor =
+    Executors.newFixedThreadPool(1);
+
   public CompletionServer(Dataset dataset, FeatureDomain[] featureDomains,
                           Params params, Statistics statistics) {
     try {
@@ -57,6 +61,7 @@ public class CompletionServer {
       server.createContext("/complete", new CompletionHandler());
       server.createContext("/eligible", new EligibleHandler());
       server.createContext("/train", new TrainingHandler());
+      server.createContext("/addDir", new AddDirHandler());
       server.createContext("/accepted", new AcceptedHandler());
 
       server.createContext("/kill", killHandler);
@@ -95,10 +100,6 @@ public class CompletionServer {
   }
 
   private void handleDoc(String path, Document newDoc) {
-    handleDoc(path, newDoc, false);
-  }
-
-  private void handleDoc(String path, Document newDoc, boolean docCount) {
     Document oldDoc = docs.get(path);
     List<Statistic> corpusStatistics =
       statistics.getCorpusStatistics(statistics.getProjectLangCorpus(path));
@@ -109,8 +110,85 @@ public class CompletionServer {
     DocUtils.countDoc(newDoc, corpusStatistics);
   }
 
+  static private final Pattern addDirRegex =
+    Pattern.compile("dir=([^&]+)");
+
+  private class AddDirAction implements Runnable {
+    private String dir;
+
+    public AddDirAction(String dir) {
+      this.dir = dir;
+    }
+
+    @Override
+    public void run() {
+      synchronized(CompletionServer.this) {
+        try {
+          trainingDirs.add(new File(dir).getCanonicalFile());
+        } catch (IOException e) {
+          logs("Couldn't start server because " + e.toString());
+          System.exit(-1);
+        }
+        ReadData.iterPath(dir, new ReadData.DocHandler() {
+          @Override
+          public boolean handle(Document doc) {
+            logs("Counting %s", doc.path);
+            handleDoc(doc.path, doc);
+            return true;
+          }
+        });
+        logs("Finished adding dir %s", dir);
+      }
+    }
+  }
+
+  class AddDirHandler implements HttpHandler {
+    public void handle(HttpExchange t) throws IOException {
+      try {
+        URI uri = t.getRequestURI();
+        Matcher match = addDirRegex.matcher(uri.getQuery());
+        match.find();
+        String dir = URLDecoder.decode(match.group(1));
+
+        if (inTrainingDir(dir)) {
+          logs("Dir %s already in training path", dir);
+        } else {
+          executor.execute(new AddDirAction(dir));
+          logs("Add dir %s", dir);
+        }
+
+        forwardHandler.forward(uri, "");
+
+        Http.send(t, "text/plain", "Thanks");
+      } catch (Exception e) {
+        System.err.println("Caught exception in addDir: " + e);
+        System.err.println("Uri: " + t.getRequestURI());
+        e.printStackTrace();
+        Http.sendError(t);
+      }
+    }
+  }
+
   static private final Pattern trainingRegex =
     Pattern.compile("path=([^&]+)&event=([^&]+)");
+
+  private class TrainingAction implements Runnable {
+    private String path;
+    private String content;
+
+    public TrainingAction(String path, String content) {
+      this.path = path;
+      this.content = content;
+    }
+
+    @Override
+    public void run() {
+      synchronized(CompletionServer.this) {
+        handleDoc(path,
+            new Document(path, Tokenizer.tokenize(content, path)));
+      }
+    }
+  }
 
   class TrainingHandler implements HttpHandler {
     public void handle(HttpExchange t) throws IOException {
@@ -122,10 +200,11 @@ public class CompletionServer {
         String path = URLDecoder.decode(match.group(1));
         FileEvent event = FileEvent.fromId(Integer.parseInt(match.group(2)));
 
-        if (isEligible(path, content)) {
-          handleDoc(path,
-                    new Document(path, Tokenizer.tokenize(content, path)));
-          logs("Training: path=%s, event=%s", path, event);
+        synchronized(CompletionServer.this) {
+          if (isEligible(path, content)) {
+            executor.execute(new TrainingAction(path, content));
+            logs("Training: path=%s, event=%s", path, event);
+          }
         }
 
         forwardHandler.forward(uri, content);
@@ -170,7 +249,10 @@ public class CompletionServer {
         logs("Eligibility check: path=%s, loc=%d, up=%b", path,
              loc, up);
 
-        boolean eligible = isEligible(path, content);
+        boolean eligible;
+        synchronized(CompletionServer.this) {
+          eligible = isEligible(path, content);
+        }
 
         Http.send(t, "text/plain", eligible ? "1" : "0");
       } catch (Exception e) {
@@ -220,7 +302,7 @@ public class CompletionServer {
              path, base, loc, up, pos);
 
         SplitDocument doc = new SplitDocument(path, tokens, pos);
-        handleDoc(path, doc, true);
+        handleDoc(path, doc);
 
         MultiTokenCandidateList candidates =
           new MultiTokenCandidateList(featureDomains, params,
@@ -257,6 +339,31 @@ public class CompletionServer {
   static private final Yaml yaml = new Yaml();
   private final BufferedWriter yamlOut =
     new BufferedWriter(IOUtils.openOutEasy(Execution.getFile("candidates")));
+
+  private class AcceptedAction implements Runnable {
+    private String path;
+    private String content;
+    private int loc;
+
+    public AcceptedAction(String path, String content, int loc) {
+      this.path = path;
+      this.content = content;
+      this.loc = loc;
+    }
+
+    @Override
+    public void run() {
+      synchronized(CompletionServer.this) {
+        List<Token> tokens = Tokenizer.tokenize(content, path);
+        Document doc = new Document(path, tokens);
+        handleDoc(path, doc);
+
+        int pos = Collections.binarySearch(tokens, new Token("", loc),
+                                           tokenComparator);
+        // learn(doc, pos);
+      }
+    }
+  }
 
   class AcceptedHandler implements HttpHandler {
     RunningGradient batchGrad = new RunningGradient();
@@ -296,17 +403,13 @@ public class CompletionServer {
         int loc = Integer.parseInt(match.group(4));
         boolean up = match.group(5).equals("1");
 
-        List<Token> tokens = Tokenizer.tokenize(content, path);
-        int pos = Collections.binarySearch(tokens, new Token("", loc),
-                                           tokenComparator);
-
-        logs("Accepted: selection=%s, path=%s, base=%s, loc=%d, up=%b, pos=%s",
-             selection, path, base, loc, up, pos);
-
-        Document doc = new Document(path, tokens);
-        handleDoc(path, doc);
-
-        // learn(doc, pos);
+        synchronized(CompletionServer.this) {
+          if (isEligible(path, content)) {
+            executor.execute(new AcceptedAction(path, content, loc));
+            logs("Accepted: selection=%s, path=%s, base=%s, loc=%d, up=%b",
+                selection, path, base, loc, up);
+          }
+        }
 
         forwardHandler.forward(uri, content);
 

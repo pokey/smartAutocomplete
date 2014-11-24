@@ -45,17 +45,22 @@ public class ReadData {
     }
   };
 
+  static private int docCount = 0;
+
   static public void iterDocuments(List<String> paths, DocHandler handler) {
-    int docCount = 0;
     for (String path : paths) {
-      for (File file : IOUtils.getFilesUnder(path, docFilter)) {
-        if (!FileUtil.isText(file) ||
-            !Main.supportsLanguage(file.getPath()))
-          continue;
-        docCount++;
-        if (docCount % docPeriod != 0) continue;
-        if (!readFile(file.toString(), handler)) return;
-      }
+      iterPath(path, handler);
+    }
+  }
+
+  static public void iterPath(String path, DocHandler handler) {
+    for (File file : IOUtils.getFilesUnder(path, docFilter)) {
+      if (!FileUtil.isText(file) ||
+          !Main.supportsLanguage(file.getPath()))
+        continue;
+      docCount++;
+      if (docCount % docPeriod != 0) continue;
+      if (!readFile(file.toString(), handler)) return;
     }
   }
 
