@@ -57,6 +57,7 @@ public class Dataset {
   public void readData() {
     begin_track("Read documents");
 
+    ReadData.initIgnoreList();
     ReadData.readInPaths(documents);
 
     // Permute the documents randomly

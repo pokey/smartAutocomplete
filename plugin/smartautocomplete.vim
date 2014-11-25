@@ -129,9 +129,17 @@ EOF
    endif
 endfunction
 
+function! g:AddParentDir()
+  call s:AddDir(1)
+endfunction
+
+function! g:AddFile()
+  call s:AddDir(0)
+endfunction
+
 " This function can be called to tell the server to train on the
 " directory containing the current file.
-function! g:AddParentDir()
+function! s:AddDir(isParent)
    call s:DetermineUri()
 
 python << EOF
@@ -141,10 +149,12 @@ URI = str(vim.eval("s:uriBase")) + '/addDir'
 
 try:
    # Current path of buffer
+   isParent = int(vim.eval("a:isParent"))
    path = str(vim.eval("expand('%:p')"))
-   parent = os.path.dirname(path)
+   if isParent:
+     path = os.path.dirname(path)
 
-   URI += "?dir=" + urllib.quote_plus(parent)
+   URI += "?dir=" + urllib.quote_plus(path)
    r = urllib2.Request(URI)
    urllib2.urlopen(r)   
 

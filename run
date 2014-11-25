@@ -32,7 +32,7 @@ run!(
                   o('alwaysUseFileName', false),
                   o('maxFileSize', 200000),
                   o('languages', 'py', 'java', 'sh', 'rb', 'js',
-                                 'html', 'css', 'vim', 'cpp')), # Run plugin
+                                 'html', 'css', 'vim', 'cpp', 'h')), # Run plugin
 
     # For running benchmarks
     'tune' => l(o('data.countRange', '0,1'), o('data.tuneRange', '-20,-10'), o('eval', '-10,1')), # Tune for a bit before evaluating, then stop tuning

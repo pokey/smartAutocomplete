@@ -99,11 +99,14 @@ public class CompletionServer {
     return contained;
   }
 
-  private void handleDoc(String path, Document newDoc) {
+  // Uncount old version of doc and count new version.  If onlyNew
+  // is true, then return if the old doc exists.
+  private void handleDoc(String path, Document newDoc, boolean onlyNew) {
     Document oldDoc = docs.get(path);
     List<Statistic> corpusStatistics =
       statistics.getCorpusStatistics(statistics.getProjectLangCorpus(path));
     if (oldDoc != null) {
+      if (onlyNew) return;
       DocUtils.uncountDoc(oldDoc, corpusStatistics);
     }
     docs.put(path, newDoc);
@@ -112,6 +115,22 @@ public class CompletionServer {
 
   static private final Pattern addDirRegex =
     Pattern.compile("dir=([^&]+)");
+
+  private class HandleDocAction implements Runnable {
+    private Document doc;
+
+    public HandleDocAction(Document doc) {
+      this.doc = doc;
+    }
+
+    @Override
+    public void run() {
+      synchronized(CompletionServer.this) {
+        logs("Counting %s", doc.path);
+        handleDoc(doc.path, doc, true);
+      }
+    }
+  }
 
   private class AddDirAction implements Runnable {
     private String dir;
@@ -129,16 +148,15 @@ public class CompletionServer {
           logs("Couldn't start server because " + e.toString());
           System.exit(-1);
         }
-        ReadData.iterPath(dir, new ReadData.DocHandler() {
-          @Override
-          public boolean handle(Document doc) {
-            logs("Counting %s", doc.path);
-            handleDoc(doc.path, doc);
-            return true;
-          }
-        });
-        logs("Finished adding dir %s", dir);
       }
+      ReadData.iterPath(dir, new ReadData.DocHandler() {
+        @Override
+        public boolean handle(Document doc) {
+          executor.execute(new HandleDocAction(doc));
+          return true;
+        }
+      });
+      logs("Finished adding dir %s", dir);
     }
   }
 
@@ -185,7 +203,7 @@ public class CompletionServer {
     public void run() {
       synchronized(CompletionServer.this) {
         handleDoc(path,
-            new Document(path, Tokenizer.tokenize(content, path)));
+            new Document(path, Tokenizer.tokenize(content, path)), false);
       }
     }
   }
@@ -302,7 +320,7 @@ public class CompletionServer {
              path, base, loc, up, pos);
 
         SplitDocument doc = new SplitDocument(path, tokens, pos);
-        handleDoc(path, doc);
+        handleDoc(path, doc, false);
 
         MultiTokenCandidateList candidates =
           new MultiTokenCandidateList(featureDomains, params,
@@ -334,7 +352,7 @@ public class CompletionServer {
   }
 
   static private final Pattern acceptedRegex =
-    Pattern.compile("selection=([^&]+)&path=([^&]+)&base=([^&]*)&loc=(\\d+)&up=(\\d+)");
+    Pattern.compile("selection=([^&]*)&path=([^&]+)&base=([^&]*)&loc=(\\d+)&up=(\\d+)");
 
   static private final Yaml yaml = new Yaml();
   private final BufferedWriter yamlOut =
@@ -356,7 +374,7 @@ public class CompletionServer {
       synchronized(CompletionServer.this) {
         List<Token> tokens = Tokenizer.tokenize(content, path);
         Document doc = new Document(path, tokens);
-        handleDoc(path, doc);
+        handleDoc(path, doc, false);
 
         int pos = Collections.binarySearch(tokens, new Token("", loc),
                                            tokenComparator);

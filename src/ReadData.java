@@ -35,7 +35,9 @@ public class ReadData {
   private enum Mark { NONE, TRAIN, TEST, TEST_COUNT }
 
   public static boolean isExcluded(File file) {
-    for (File f : exclusions) if (file.equals(f)) return true;
+    for (File f : exclusions) {
+      if (FileUtil.contains(f, file)) return true;
+    }
     return false;
   }
 
@@ -64,24 +66,29 @@ public class ReadData {
     }
   }
 
-  static public void readInPaths(List<Document> documents) {
-    iterDocuments(inPaths, new DefaultHandler(documents, Mark.NONE));
-  }
-
-  static public void readFixedPaths(List<Document> documents) {
+  static public void initIgnoreList() {
     if (!ignoreList.equals("")) {
       try {
         BufferedReader br =
           new BufferedReader(new FileReader(ignoreList));
         String line = null;
+        File parent = new File(ignoreList).getParentFile();
         while ((line = br.readLine()) != null) {  
-          exclusions.add(new File(ignoreList, line));
+          File f = new File(parent, line);
+          exclusions.add(f);
         } 
       } catch (IOException e) {
         System.err.println("Error reading ignoreList " + ignoreList);
         System.exit(-1);
       }
     }
+  }
+
+  static public void readInPaths(List<Document> documents) {
+    iterDocuments(inPaths, new DefaultHandler(documents, Mark.NONE));
+  }
+
+  static public void readFixedPaths(List<Document> documents) {
     iterDocuments(trainPaths, new DefaultHandler(documents, Mark.TRAIN));
     iterDocuments(testPaths, new DefaultHandler(documents, Mark.TEST));
     iterDocuments(testCountPaths,
