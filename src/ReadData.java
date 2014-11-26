@@ -28,7 +28,7 @@ public class ReadData {
   @Option(gloss="Set of files/directories to test on") public static List<String> testPaths = new ArrayList<String>();
   @Option(gloss="Set of files/directories to test and count on") public static List<String> testCountPaths = new ArrayList<String>();
 
-  @Option(gloss="File containing paths to ignore") public static String ignoreList = "";
+  @Option(gloss="Paths to exclude") public static List<String> excludePaths = new ArrayList<String>();
 
   public static List<File> exclusions = new ArrayList<File>();
 
@@ -66,22 +66,9 @@ public class ReadData {
     }
   }
 
-  static public void initIgnoreList() {
-    if (!ignoreList.equals("")) {
-      try {
-        BufferedReader br =
-          new BufferedReader(new FileReader(ignoreList));
-        String line = null;
-        File parent = new File(ignoreList).getParentFile();
-        while ((line = br.readLine()) != null) {  
-          File f = new File(parent, line);
-          exclusions.add(f);
-        } 
-      } catch (IOException e) {
-        System.err.println("Error reading ignoreList " + ignoreList);
-        System.exit(-1);
-      }
-    }
+  static public void initExcludes() {
+    for (String path : excludePaths)
+      exclusions.add(new File(path));
   }
 
   static public void readInPaths(List<Document> documents) {
