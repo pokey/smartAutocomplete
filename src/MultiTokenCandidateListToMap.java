@@ -26,8 +26,9 @@ public class MultiTokenCandidateListToMap {
     map.put("path", doc.path);
     map.put("loc", loc);
 
-    Object[] candidates = new Object[numMultiCandidates];
-    for (int i=0; i<numMultiCandidates; i++) {
+    int len = Math.min(numMultiCandidates, candidateList.size());
+    Object[] candidates = new Object[len];
+    for (int i=0; i<len; i++) {
       candidates[i] =
         toMap(candidateList.get(i), whitespaceModel,
               featureDomains, params, statistics, doc, base);
