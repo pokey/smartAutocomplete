@@ -31,18 +31,19 @@ public class MultiTokenCandidateListToMap {
     for (int i=0; i<len; i++) {
       candidates[i] =
         toMap(candidateList.get(i), whitespaceModel,
-              featureDomains, params, statistics, doc, base);
+              featureDomains, params, statistics, doc, base, true);
     }
     map.put("candidates", candidates);
 
     return map;
   }
 
-  static Map<String, Object>
+  public static Map<String, Object>
   toMap(MultiTokenCandidate candidate,
         WhitespaceModel whitespaceModel,
         FeatureDomain[] featureDomains, Params params,
-        Statistics statistics, SplitDocument doc, String base) {
+        Statistics statistics, SplitDocument doc, String base,
+        boolean alternatives) {
     Map<String, Object> map = new HashMap<String, Object>();
 
     map.put("candidate", whitespaceModel.toString(candidate));
@@ -60,7 +61,7 @@ public class MultiTokenCandidateListToMap {
       candidateInfos[i] =
         candidatesToMap(candidates[i], whitespaceModel,
                         featureDomains, params, statistics, doc,
-                        base);
+                        base, alternatives);
     }
     map.put("pieces", candidateInfos);
     map.put("nextCandidates", 
@@ -76,7 +77,7 @@ public class MultiTokenCandidateListToMap {
                   WhitespaceModel whitespaceModel,
                   FeatureDomain[] featureDomains, Params params,
                   Statistics statistics, SplitDocument doc,
-                  String base) {
+                  String base, boolean alternatives) {
     Map<String, Object> map = new HashMap<String, Object>();
 
     MultiTokenCandidate prev = candidate.getPrev();
@@ -97,15 +98,17 @@ public class MultiTokenCandidateListToMap {
     Candidate last = candidate.getLast();
     map.put("this", InferStateToMap.toMap(last, featureDomains,
                                           params, context));
-    List<Object> candidateInfos = new ArrayList<Object>();
-    int len = Math.min(numCandidates, nextCandidates.size());
-    for (int i=0; i<len; i++) {
-      Candidate c = nextCandidates.get(i);
-      if (c.token.equals(last.token)) continue;
-      candidateInfos.add(InferStateToMap.toMap(c, featureDomains,
-                                               params, context));
+    if (alternatives) {
+      List<Object> candidateInfos = new ArrayList<Object>();
+      int len = Math.min(numCandidates, nextCandidates.size());
+      for (int i=0; i<len; i++) {
+        Candidate c = nextCandidates.get(i);
+        if (c.token.equals(last.token)) continue;
+        candidateInfos.add(InferStateToMap.toMap(c, featureDomains,
+                                                 params, context));
+      }
+      map.put("alternatives", candidateInfos);
     }
-    map.put("alternatives", candidateInfos);
 
     return map;
   }

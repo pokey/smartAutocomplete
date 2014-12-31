@@ -30,7 +30,7 @@ run!(
                   o('tuningTotal', 2000), o('completionServer'),
                   o('tokenizeCode', true),
                   o('alwaysUseFileName', false),
-                  o('maxFileSize', 200000),
+                  o('maxFileSize', 100000),
                   o('languages', 'py', 'java', 'sh', 'rb', 'js',
                                  'html', 'css', 'vim', 'cpp', 'h')), # Run plugin
 

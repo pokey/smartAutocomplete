@@ -26,6 +26,9 @@ public class CompletionServer {
   @Option(gloss="Port on which to listen for completion requests")
     public static int port = -1;
 
+  @Option(gloss="Number of candidates to send to server")
+    public static int numCandidates = 50;
+
   private HttpServer server;
 
   private Statistics statistics;
@@ -41,6 +44,12 @@ public class CompletionServer {
   private final ExecutorService executor =
     Executors.newFixedThreadPool(1);
 
+  private MultiTokenCandidateList lastCompletionCandidates = null;
+  private SplitDocument lastCompletionDoc = null;
+
+  BufferedWriter yamlOut;
+  Yaml yaml;
+
   public CompletionServer(Dataset dataset, FeatureDomain[] featureDomains,
                           Params params, Statistics statistics) {
     try {
@@ -53,6 +62,10 @@ public class CompletionServer {
       this.featureDomains = featureDomains;
       this.statistics = statistics;
       this.params = params;
+
+      yamlOut =
+        new BufferedWriter(IOUtils.openOutEasy(Execution.getFile("completions")));
+      yaml = new Yaml();
 
       server = HttpServer.create(new InetSocketAddress(port), 0);
 
@@ -285,18 +298,13 @@ public class CompletionServer {
   static private final Pattern completionRegex =               
     Pattern.compile("path=([^&]+)&base=([^&]*)&loc=(\\d+)&up=(\\d+)");
 
+  private WhitespaceModel whitespaceModel = new WhitespaceModel();
+
   class CompletionHandler implements HttpHandler {
     private String recordSep = Character.toString((char) 30);
-    BufferedWriter yamlOut;
-    Yaml yaml;
 
     public CompletionHandler() {
-      yamlOut =
-        new BufferedWriter(IOUtils.openOutEasy(Execution.getFile("completions")));
-      yaml = new Yaml();
     }
-
-    private WhitespaceModel whitespaceModel = new WhitespaceModel();
 
     public void handle(HttpExchange t) throws IOException {
       try {
@@ -325,12 +333,14 @@ public class CompletionServer {
         MultiTokenCandidateList candidates =
           new MultiTokenCandidateList(featureDomains, params,
                                       statistics, doc, base);
+        lastCompletionCandidates = candidates;
+        lastCompletionDoc = doc;
 
         forwardHandler.forward(uri, content);
 
         StringBuilder ret = new StringBuilder();
         String sep = "";
-        for (int i=0; i<Math.min(candidates.size(), 50); i++) {
+        for (int i=0; i<Math.min(candidates.size(), numCandidates); i++) {
           ret.append(sep);
           ret.append(whitespaceModel.toString(candidates.get(i)));
           sep = recordSep;
@@ -354,31 +364,75 @@ public class CompletionServer {
   static private final Pattern acceptedRegex =
     Pattern.compile("selection=([^&]*)&path=([^&]+)&base=([^&]*)&loc=(\\d+)&up=(\\d+)");
 
-  static private final Yaml yaml = new Yaml();
-  private final BufferedWriter yamlOut =
-    new BufferedWriter(IOUtils.openOutEasy(Execution.getFile("candidates")));
-
   private class AcceptedAction implements Runnable {
     private String path;
     private String content;
     private int loc;
+    private String selection;
 
-    public AcceptedAction(String path, String content, int loc) {
+    public AcceptedAction(String path, String content, int loc,
+                          String selection) {
       this.path = path;
       this.content = content;
       this.loc = loc;
+      this.selection = selection;
     }
 
     @Override
     public void run() {
       synchronized(CompletionServer.this) {
-        List<Token> tokens = Tokenizer.tokenize(content, path);
-        Document doc = new Document(path, tokens);
-        handleDoc(path, doc, false);
+        try {
+          List<Token> tokens = Tokenizer.tokenize(content, path);
+          Document doc = new Document(path, tokens);
+          int tokensAdded =
+            tokens.size() - lastCompletionDoc.tokens.size();
+          handleDoc(path, doc, false);
 
-        int pos = Collections.binarySearch(tokens, new Token("", loc),
-                                           tokenComparator);
-        // learn(doc, pos);
+          int pos = Collections.binarySearch(tokens, new Token("", loc),
+                                             tokenComparator);
+          int len =
+            Math.min(lastCompletionCandidates.size(), numCandidates);
+          MultiTokenCandidate chosen = null;
+          int actualIdx = -1;
+          for (int i=0; i<len; i++) {
+            MultiTokenCandidate candidate =
+              lastCompletionCandidates.get(i);
+            MultiTokenCandidate curr = candidate;
+            boolean match = true;
+            for (int j=pos+tokensAdded-1; j>=pos; j--) {
+              if (curr == null ||
+                  !tokens.get(j).str().equals(curr.getLast().token)) {
+                match = false;
+                break;
+              }
+              curr = curr.getPrev();
+            }
+            if (match) {
+              chosen = candidate;
+              actualIdx = i;
+              break;
+            }
+          }
+          Map<String, Object> map = new HashMap<String, Object>();
+          if (chosen != null) {
+            map.put("actualIdx", actualIdx);
+            if (actualIdx != 0) {
+              map.put("actual",
+                  MultiTokenCandidateListToMap.toMap(chosen,
+                    whitespaceModel, featureDomains, params,
+                    statistics, lastCompletionDoc,
+                    lastCompletionCandidates.getBase(), false));
+            }
+          } else {
+            map.put("notFound", true);
+          }
+          yaml.dump(map, yamlOut);
+          yamlOut.flush();
+          // learn(doc, pos);
+        } catch (Exception e) {
+          System.err.println("Caught exception in accepted async: " + e);
+          e.printStackTrace();
+        }
       }
     }
   }
@@ -423,7 +477,7 @@ public class CompletionServer {
 
         synchronized(CompletionServer.this) {
           if (isEligible(path, content)) {
-            executor.execute(new AcceptedAction(path, content, loc));
+            executor.execute(new AcceptedAction(path, content, loc, selection));
             logs("Accepted: selection=%s, path=%s, base=%s, loc=%d, up=%b",
                 selection, path, base, loc, up);
           }
