@@ -1,3 +1,5 @@
+- Every time we train, see if it is an accepted completion, by
+looking at old token stream.  Should be really simple operation
 x- Stop using max_n
 x- Check if gradient of a big batch is 0 for params on good run
 x- Replace context words with oov but ignore oov prediction words, for both

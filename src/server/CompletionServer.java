@@ -46,6 +46,7 @@ public class CompletionServer {
 
   private MultiTokenCandidateList lastCompletionCandidates = null;
   private SplitDocument lastCompletionDoc = null;
+  private int lastCompletionPos = -1;
 
   BufferedWriter yamlOut;
   Yaml yaml;
@@ -203,6 +204,28 @@ public class CompletionServer {
   static private final Pattern trainingRegex =
     Pattern.compile("path=([^&]+)&event=([^&]+)");
 
+  // Returns true if this training event is an addition at the
+  // place where the user last asked for a completion
+  boolean isAcceptedDiff(List<Token> oldTokens,
+                         List<Token> newTokens,
+                         int lastCompletionPos) {
+    for (int i=0; i<lastCompletionPos; i++) {
+      if (!oldTokens.get(i).str().equals(newTokens.get(i).str())) {
+        return false;
+      }
+    }
+    int tokensAdded = newTokens.size() - oldTokens.size();
+    if (tokensAdded <= 0) return false;
+    for (int i=lastCompletionPos; i<oldTokens.size(); i++) {
+      String oldToken = oldTokens.get(i).str();
+      String newToken = newTokens.get(i+tokensAdded).str();
+      if (!oldToken.equals(newToken)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   private class TrainingAction implements Runnable {
     private String path;
     private String content;
@@ -215,9 +238,68 @@ public class CompletionServer {
     @Override
     public void run() {
       synchronized(CompletionServer.this) {
-        handleDoc(path,
-            new Document(path, Tokenizer.tokenize(content, path)), false);
+        List<Token> tokens = Tokenizer.tokenize(content, path);
+        if (lastCompletionDoc != null &&
+            path.equals(lastCompletionDoc.path)) {
+          if (isAcceptedDiff(lastCompletionDoc.tokens, tokens,
+                             lastCompletionPos)) {
+            handleAccepted(tokens);
+          }
+        }
+        handleDoc(path, new Document(path, tokens), false);
+        lastCompletionDoc = null;
       }
+    }
+  }
+
+  private void handleAccepted(List<Token> tokens) {
+    try {
+      int tokensAdded =
+        tokens.size() - lastCompletionDoc.tokens.size();
+
+      int len =
+        Math.min(lastCompletionCandidates.size(), numCandidates);
+      MultiTokenCandidate chosen = null;
+      int actualIdx = -1;
+      for (int i=0; i<len; i++) {
+        MultiTokenCandidate candidate =
+          lastCompletionCandidates.get(i);
+        MultiTokenCandidate curr = candidate;
+        boolean match = true;
+        for (int j=lastCompletionPos+tokensAdded-1;
+             j>=lastCompletionPos; j--) {
+          if (curr == null ||
+              !tokens.get(j).str().equals(curr.getLast().token)) {
+            match = false;
+            break;
+          }
+          curr = curr.getPrev();
+        }
+        if (match) {
+          chosen = candidate;
+          actualIdx = i;
+          break;
+        }
+      }
+      Map<String, Object> map = new HashMap<String, Object>();
+      if (chosen != null) {
+        map.put("actualIdx", actualIdx);
+        if (actualIdx != 0) {
+          map.put("actual",
+              MultiTokenCandidateListToMap.toMap(chosen,
+                whitespaceModel, featureDomains, params,
+                statistics, lastCompletionDoc,
+                lastCompletionCandidates.getBase(), false));
+        }
+      } else {
+        map.put("notFound", true);
+      }
+      yaml.dump(map, yamlOut);
+      yamlOut.flush();
+      // learn(doc, pos);
+    } catch (Exception e) {
+      System.err.println("Caught exception in accepted async: " + e);
+      e.printStackTrace();
     }
   }
 
@@ -335,6 +417,7 @@ public class CompletionServer {
                                       statistics, doc, base);
         lastCompletionCandidates = candidates;
         lastCompletionDoc = doc;
+        lastCompletionPos = pos;
 
         forwardHandler.forward(uri, content);
 
@@ -363,79 +446,6 @@ public class CompletionServer {
 
   static private final Pattern acceptedRegex =
     Pattern.compile("selection=([^&]*)&path=([^&]+)&base=([^&]*)&loc=(\\d+)&up=(\\d+)");
-
-  private class AcceptedAction implements Runnable {
-    private String path;
-    private String content;
-    private int loc;
-    private String selection;
-
-    public AcceptedAction(String path, String content, int loc,
-                          String selection) {
-      this.path = path;
-      this.content = content;
-      this.loc = loc;
-      this.selection = selection;
-    }
-
-    @Override
-    public void run() {
-      synchronized(CompletionServer.this) {
-        try {
-          List<Token> tokens = Tokenizer.tokenize(content, path);
-          Document doc = new Document(path, tokens);
-          int tokensAdded =
-            tokens.size() - lastCompletionDoc.tokens.size();
-          handleDoc(path, doc, false);
-
-          int pos = Collections.binarySearch(tokens, new Token("", loc),
-                                             tokenComparator);
-          int len =
-            Math.min(lastCompletionCandidates.size(), numCandidates);
-          MultiTokenCandidate chosen = null;
-          int actualIdx = -1;
-          for (int i=0; i<len; i++) {
-            MultiTokenCandidate candidate =
-              lastCompletionCandidates.get(i);
-            MultiTokenCandidate curr = candidate;
-            boolean match = true;
-            for (int j=pos+tokensAdded-1; j>=pos; j--) {
-              if (curr == null ||
-                  !tokens.get(j).str().equals(curr.getLast().token)) {
-                match = false;
-                break;
-              }
-              curr = curr.getPrev();
-            }
-            if (match) {
-              chosen = candidate;
-              actualIdx = i;
-              break;
-            }
-          }
-          Map<String, Object> map = new HashMap<String, Object>();
-          if (chosen != null) {
-            map.put("actualIdx", actualIdx);
-            if (actualIdx != 0) {
-              map.put("actual",
-                  MultiTokenCandidateListToMap.toMap(chosen,
-                    whitespaceModel, featureDomains, params,
-                    statistics, lastCompletionDoc,
-                    lastCompletionCandidates.getBase(), false));
-            }
-          } else {
-            map.put("notFound", true);
-          }
-          yaml.dump(map, yamlOut);
-          yamlOut.flush();
-          // learn(doc, pos);
-        } catch (Exception e) {
-          System.err.println("Caught exception in accepted async: " + e);
-          e.printStackTrace();
-        }
-      }
-    }
-  }
 
   class AcceptedHandler implements HttpHandler {
     RunningGradient batchGrad = new RunningGradient();
@@ -466,7 +476,8 @@ public class CompletionServer {
     public void handle(HttpExchange t) throws IOException {
       try {
         URI uri = t.getRequestURI();
-        String content = IOUtil.convertStreamToString(t.getRequestBody());
+        String content =
+           IOUtil.convertStreamToString(t.getRequestBody());
         Matcher match = acceptedRegex.matcher(uri.getQuery());
         match.find();
         String selection = URLDecoder.decode(match.group(1));
@@ -477,7 +488,7 @@ public class CompletionServer {
 
         synchronized(CompletionServer.this) {
           if (isEligible(path, content)) {
-            executor.execute(new AcceptedAction(path, content, loc, selection));
+            executor.execute(new TrainingAction(path, content));
             logs("Accepted: selection=%s, path=%s, base=%s, loc=%d, up=%b",
                 selection, path, base, loc, up);
           }

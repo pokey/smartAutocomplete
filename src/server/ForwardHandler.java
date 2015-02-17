@@ -46,8 +46,8 @@ class ForwardHandler implements HttpHandler {
         while ((inputLine = in.readLine()) != null);
         in.close();
       } catch (IOException e) {
-        System.err.println("IOException " + e);
-        System.exit(1);
+        System.err.println("IOException in forward: " + e);
+        e.printStackTrace();
       }
     }
   }
