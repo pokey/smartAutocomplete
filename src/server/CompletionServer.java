@@ -261,28 +261,30 @@ public class CompletionServer {
         Math.min(lastCompletionCandidates.size(), numCandidates);
       MultiTokenCandidate chosen = null;
       int actualIdx = -1;
+      int longestMatch = 0;
       for (int i=0; i<len; i++) {
         MultiTokenCandidate candidate =
           lastCompletionCandidates.get(i);
-        MultiTokenCandidate curr = candidate;
         boolean match = true;
-        for (int j=lastCompletionPos+tokensAdded-1;
-             j>=lastCompletionPos; j--) {
-          if (curr == null ||
-              !tokens.get(j).str().equals(curr.getLast().token)) {
+        int j = lastCompletionPos;
+        for (Candidate curr : candidate.candidateList()) {
+          if (j == lastCompletionPos + tokensAdded ||
+              !tokens.get(j).str().equals(curr.token)) {
             match = false;
             break;
           }
-          curr = curr.getPrev();
+          j++;
         }
-        if (match) {
+        int matchLen = j - lastCompletionPos;
+        if (matchLen >= longestMatch) {
+          longestMatch = matchLen;
           chosen = candidate;
           actualIdx = i;
-          break;
         }
+        if (longestMatch == tokensAdded && match) break;
       }
       Map<String, Object> map = new HashMap<String, Object>();
-      if (chosen != null) {
+      if (longestMatch != 0) {
         map.put("actualIdx", actualIdx);
         if (actualIdx != 0) {
           map.put("actual",

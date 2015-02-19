@@ -1,5 +1,7 @@
 package smartAutocomplete;
 
+import java.util.*;
+
 public class MultiTokenCandidate {
   private MultiTokenCandidate prev;
   private Candidate last;
@@ -23,5 +25,17 @@ public class MultiTokenCandidate {
 
   public void subtractProbFromPrev() {
     if (prev != null) prev.exclusiveProb -= this.prob;
+  }
+
+  public Candidate[] candidateList() {
+    Candidate[] candidates = new Candidate[length];
+    int idx = length-1;
+    MultiTokenCandidate candidate = this;
+    while (candidate != null) {
+      candidates[idx] = candidate.last;
+      candidate = candidate.getPrev();
+      idx--;
+    }
+    return candidates;
   }
 }
